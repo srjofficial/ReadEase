@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, Input, Button, Badge } from '../ui';
 import type { UserRole } from '../navigation/Sidebar';
 import {
@@ -64,30 +64,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 }) => {
   const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
   const [selectedRole, setSelectedRole] = useState<UserRole>('student');
-  const [email, setEmail] = useState('alex.chen@student.readease.edu');
-  const [password, setPassword] = useState('Password123!');
-  const [name, setName] = useState('Alex Chen');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Clear fields and sync mode whenever modal opens or initialMode changes
+  useEffect(() => {
+    if (isOpen) {
+      setMode(initialMode);
+      setEmail('');
+      setPassword('');
+      setName('');
+    }
+  }, [isOpen, initialMode]);
 
   const handleRoleSelect = (roleId: UserRole) => {
     setSelectedRole(roleId);
-    const roleConfig = ROLES.find((r) => r.id === roleId);
-    if (roleConfig) {
-      setName(roleConfig.defaultName);
-      setEmail(`${roleId}@readease.edu`);
-    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
+    const roleConfig = ROLES.find((r) => r.id === selectedRole);
     // Realistic transition delay for smooth UX
     setTimeout(() => {
       setIsLoading(false);
       onLoginSuccess(selectedRole, {
-        name: name || 'Demo User',
-        email: email || `${selectedRole}@readease.edu`
+        name: name.trim() || roleConfig?.defaultName || 'Reader',
+        email: email.trim() || `${selectedRole}@readease.edu`
       });
       onClose();
     }, 400);
@@ -185,6 +191,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Alex Chen"
+              autoComplete="name"
             />
           )}
 
@@ -194,7 +201,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@readease.edu"
+            placeholder={
+              selectedRole === 'student'
+                ? 'alex.chen@student.readease.edu'
+                : `${selectedRole}@readease.edu`
+            }
+            autoComplete="email"
           />
 
           <Input
@@ -203,7 +215,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••••••"
+            placeholder={mode === 'signup' ? 'Create a secure password' : 'Enter your password'}
+            autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
           />
 
           <Button
