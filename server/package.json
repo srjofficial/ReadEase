@@ -10,7 +10,8 @@
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
-    "test": "echo \"Server test suite configured\""
+    "test": "echo \"Server test suite configured\"",
+    "db:test": "tsx src/scripts/testDb.ts"
   },
   "dependencies": {
     "@readease/shared": "*",

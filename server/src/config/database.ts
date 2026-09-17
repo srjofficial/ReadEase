@@ -1,6 +1,14 @@
+import dns from 'dns';
 import mongoose, { ConnectOptions } from 'mongoose';
 import { env } from './env';
 import { logger } from '../utils/logger';
+
+// Set public DNS servers to prevent Windows querySrv ECONNREFUSED issues for MongoDB Atlas SRV URIs
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch {
+  // Fallback to system DNS
+}
 
 let isConnected = false;
 let retryAttempt = 0;
