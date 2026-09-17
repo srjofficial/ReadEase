@@ -59,11 +59,14 @@ const envSchema = z.object({
     ),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
 
-  // AI & LLM Service
+  // AI & LLM Service (Groq / OpenAI-compatible)
+  LLM_PROVIDER: z.enum(['groq', 'openrouter', 'openai', 'custom']).default('groq'),
   LLM_API_KEY: z
     .string()
     .optional()
     .default(process.env.NODE_ENV === 'production' ? '' : 'dev_mock_llm_key'),
+  LLM_MODEL: z.string().default('llama-3.3-70b-versatile'),
+  LLM_BASE_URL: z.string().default('https://api.groq.com/openai/v1'),
   AI_SERVICE_URL: z.string().url().default('http://localhost:8000'),
 
   // Rate Limiting

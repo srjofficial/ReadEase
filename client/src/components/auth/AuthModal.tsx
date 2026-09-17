@@ -9,7 +9,9 @@ import {
   LogIn,
   UserPlus,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 export interface AuthModalProps {
@@ -67,6 +69,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   // Clear fields and sync mode whenever modal opens or initialMode changes
@@ -76,6 +79,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setEmail('');
       setPassword('');
       setName('');
+      setShowPassword(false);
     }
   }, [isOpen, initialMode]);
 
@@ -211,12 +215,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           <Input
             label="Password"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder={mode === 'signup' ? 'Create a secure password' : 'Enter your password'}
             autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+            iconRight={
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-high transition-colors focus:outline-none focus:ring-2 focus:ring-primary flex items-center justify-center cursor-pointer"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                title={showPassword ? 'Hide password' : 'Show password'}
+                tabIndex={-1}
+              >
+                {showPassword ? (
+                  <EyeOff
+                    size={18}
+                    className="text-primary transition-all animate-in fade-in"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <Eye
+                    size={18}
+                    className="text-text-muted hover:text-text-primary transition-all"
+                    aria-hidden="true"
+                  />
+                )}
+              </button>
+            }
           />
 
           <Button

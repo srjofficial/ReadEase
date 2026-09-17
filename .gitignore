@@ -36,6 +36,9 @@ out/
 .env.production.local
 *.env
 !*.env.example
+*.key
+*key*.txt
+api key.txt
 
 # Python
 __pycache__/
