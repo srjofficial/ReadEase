@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "readease-ai-service"
+version = "1.0.0"
+description = "ReadEase AI, OCR, and Document Processing Microservice"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.111.0",
+    "uvicorn[standard]>=0.29.0",
+    "pydantic>=2.7.1",
+    "pydantic-settings>=2.2.1",
+    "python-multipart>=0.0.9",
+    "Pillow>=10.3.0",
+    "pytesseract>=0.3.10",
+    "pypdf>=4.2.0"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"

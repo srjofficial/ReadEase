@@ -1,0 +1,133 @@
+version: '3.8'
+
+services:
+  # ----------------------------------------------------------------------------
+  # Frontend Client
+  # ----------------------------------------------------------------------------
+  client:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    container_name: readease_client
+    restart: unless-stopped
+    ports:
+      - '5173:80'
+    environment:
+      - VITE_API_URL=http://localhost:5000/api/v1
+      - VITE_AI_SERVICE_URL=http://localhost:8000
+    depends_on:
+      server:
+        condition: service_healthy
+    networks:
+      - readease_network
+
+  # ----------------------------------------------------------------------------
+  # Backend Express Server
+  # ----------------------------------------------------------------------------
+  server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: readease_server
+    restart: unless-stopped
+    ports:
+      - '5000:5000'
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - API_PREFIX=/api/v1
+      - CORS_ORIGIN=http://localhost:5173
+      - DATABASE_URL=postgresql://readease_user:readease_password@postgres:5432/readease_db
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=change_this_secret_in_production_key_12345
+      - AI_SERVICE_URL=http://ai-service:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:5000/api/v1/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - readease_network
+
+  # ----------------------------------------------------------------------------
+  # AI Microservice (FastAPI + Vision/OCR)
+  # ----------------------------------------------------------------------------
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: readease_ai_service
+    restart: unless-stopped
+    ports:
+      - '8000:8000'
+    environment:
+      - AI_PORT=8000
+      - AI_HOST=0.0.0.0
+      - DEBUG=False
+      - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5000,http://server:5000
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:8000/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - readease_network
+
+  # ----------------------------------------------------------------------------
+  # Database (PostgreSQL)
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: readease_postgres
+    restart: unless-stopped
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: readease_user
+      POSTGRES_PASSWORD: readease_password
+      POSTGRES_DB: readease_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U readease_user -d readease_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - readease_network
+
+  # ----------------------------------------------------------------------------
+  # Cache & Broker (Redis)
+  # ----------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: readease_redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - readease_network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  readease_network:
+    driver: bridge

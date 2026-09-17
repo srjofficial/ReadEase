@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-canvas: #faf6ef;
+    --text-main: #2b2b2e;
+    --text-muted: #454652;
+    --color-primary: #203390;
+    --color-primary-container: #3a4ca8;
+    --color-secondary: #e8a33d;
+    --color-tertiary: #4e9f6e;
+    --card-surface: #ffffff;
+    --card-border: #e5e0d8;
+  }
+
+  [data-theme='dark'] {
+    --bg-canvas: #131315;
+    --text-main: #f2f0f4;
+    --text-muted: #bec7d4;
+    --color-primary: #98cbff;
+    --color-primary-container: #00a3ff;
+    --color-secondary: #feb64e;
+    --color-tertiary: #87daa4;
+    --card-surface: #1e1e24;
+    --card-border: #333338;
+  }
+
+  body {
+    background-color: var(--bg-canvas);
+    color: var(--text-main);
+    font-family: 'Lexend', 'Atkinson Hyperlegible', system-ui, sans-serif;
+    line-height: 1.75;
+    letter-spacing: 0.025em;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Accessibility Defaults */
+  *:focus-visible {
+    outline: 3px solid #3a4ca8;
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  /* Reading measure constraint to prevent cognitive fatigue */
+  p,
+  article,
+  .reading-text {
+    max-width: 65ch;
+    text-align: left;
+  }
+}
+
+@layer utilities {
+  .dyslexia-font-lexend {
+    font-family: 'Lexend', sans-serif;
+  }
+
+  .dyslexia-font-atkinson {
+    font-family: 'Atkinson Hyperlegible', sans-serif;
+  }
+
+  .reading-ruler-overlay {
+    position: fixed;
+    pointer-events: none;
+    left: 0;
+    width: 100vw;
+    background: rgba(232, 163, 61, 0.18);
+    border-top: 2px solid rgba(232, 163, 61, 0.6);
+    border-bottom: 2px solid rgba(232, 163, 61, 0.6);
+    z-index: 9999;
+  }
+}
