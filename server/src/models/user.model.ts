@@ -7,13 +7,18 @@ export type UserStatus = 'active' | 'pending' | 'suspended' | 'inactive';
 export interface IUser extends Document {
   name: string;
   email: string;
-  passwordHash: string;
+  passwordHash?: string;
+  authProvider?: 'local' | 'google';
+  googleId?: string;
   role: UserRole;
   status: UserStatus;
+  isEmailVerified: boolean;
   profileImage?: string;
   refreshTokenHash?: string;
   passwordResetTokenHash?: string;
   passwordResetExpiresAt?: Date;
+  emailVerificationTokenHash?: string;
+  emailVerificationExpiresAt?: Date;
   lastLoginAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -43,8 +48,18 @@ const userSchema = new Schema<IUser, IUserModel>(
     },
     passwordHash: {
       type: String,
-      required: [true, 'Password hash is required'],
+      required: function (this: IUser) {
+        return this.authProvider !== 'google';
+      },
       select: false // Exclude from normal queries for security
+    },
+    authProvider: {
+      type: String,
+      enum: ['local', 'google'],
+      default: 'local'
+    },
+    googleId: {
+      type: String
     },
     role: {
       type: String,
@@ -64,6 +79,10 @@ const userSchema = new Schema<IUser, IUserModel>(
       },
       default: 'active'
     },
+    isEmailVerified: {
+      type: Boolean,
+      default: false
+    },
     profileImage: {
       type: String,
       trim: true
@@ -80,6 +99,14 @@ const userSchema = new Schema<IUser, IUserModel>(
       type: Date,
       select: false
     },
+    emailVerificationTokenHash: {
+      type: String,
+      select: false
+    },
+    emailVerificationExpiresAt: {
+      type: Date,
+      select: false
+    },
     lastLoginAt: {
       type: Date
     }
@@ -93,6 +120,7 @@ const userSchema = new Schema<IUser, IUserModel>(
 userSchema.index({ role: 1 });
 userSchema.index({ status: 1 });
 userSchema.index({ createdAt: -1 });
+userSchema.index({ googleId: 1 }, { sparse: true });
 
 // Static method to hash password with cost factor 12
 userSchema.statics.hashPassword = async function (password: string): Promise<string> {
@@ -102,6 +130,9 @@ userSchema.statics.hashPassword = async function (password: string): Promise<str
 
 // Instance method to compare candidate password with stored hash
 userSchema.methods.comparePassword = async function (candidatePassword: string): Promise<boolean> {
+  if (!this.passwordHash) {
+    return false;
+  }
   return bcrypt.compare(candidatePassword, this.passwordHash);
 };
 

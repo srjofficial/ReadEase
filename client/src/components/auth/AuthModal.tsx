@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Input, Button, Badge } from '../ui';
 import type { UserRole } from '../navigation/Sidebar';
+import { GoogleIcon } from '../../pages/auth/LoginPage';
 import {
   GraduationCap,
   BookOpen,
@@ -9,7 +10,6 @@ import {
   LogIn,
   UserPlus,
   ArrowRight,
-  Sparkles,
   Eye,
   EyeOff
 } from 'lucide-react';
@@ -71,6 +71,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   // Clear fields and sync mode whenever modal opens or initialMode changes
   useEffect(() => {
@@ -103,17 +104,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }, 400);
   };
 
-  const handleQuickDemoLogin = (roleId: UserRole) => {
-    const roleConfig = ROLES.find((r) => r.id === roleId);
-    setIsLoading(true);
+  const handleGoogleAuth = () => {
+    setIsGoogleLoading(true);
     setTimeout(() => {
-      setIsLoading(false);
-      onLoginSuccess(roleId, {
-        name: roleConfig?.defaultName || 'Demo User',
-        email: `${roleId}@readease.edu`
+      setIsGoogleLoading(false);
+      onLoginSuccess(selectedRole, {
+        name: name.trim() || 'Google Reader',
+        email: 'user.google@gmail.com'
       });
       onClose();
-    }, 300);
+    }, 500);
   };
 
   return (
@@ -128,6 +128,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
     >
       <div className="space-y-6 pt-2">
+        <div className="flex justify-center -mt-1 mb-2">
+          <img
+            src="/ReadEase_wordmark_transparent.svg"
+            alt="ReadEase"
+            className="h-8 w-auto object-contain"
+          />
+        </div>
+
         {/* Mode Toggle (Login vs Sign Up) */}
         <div className="flex bg-surface-low p-1 rounded-xl border border-surface-border">
           <button
@@ -154,6 +162,37 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <UserPlus size={16} />
             <span>Create Account</span>
           </button>
+        </div>
+
+        {/* Google Authentication */}
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={handleGoogleAuth}
+            disabled={isGoogleLoading || isLoading}
+            className="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-surface-lowest hover:bg-surface-low border border-surface-border hover:border-primary-300 rounded-xl font-semibold text-sm text-text-primary transition-all shadow-xs hover:shadow-soft active:scale-[0.99] disabled:opacity-60 cursor-pointer"
+          >
+            {isGoogleLoading ? (
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <GoogleIcon size={18} />
+            )}
+            <span>
+              {isGoogleLoading
+                ? 'Connecting with Google...'
+                : mode === 'login'
+                  ? 'Continue with Google'
+                  : 'Sign up with Google'}
+            </span>
+          </button>
+
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-surface-border" />
+            <span className="text-[11px] uppercase font-semibold text-text-muted tracking-wider">
+              or continue with email
+            </span>
+            <div className="flex-1 h-px bg-surface-border" />
+          </div>
         </div>
 
         {/* Role Selector */}
@@ -258,26 +297,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             {mode === 'login' ? `Sign In as ${selectedRole}` : `Create ${selectedRole} Account`}
           </Button>
         </form>
-
-        {/* Quick Demo Switcher */}
-        <div className="pt-4 border-t border-surface-border space-y-2">
-          <div className="flex items-center gap-1.5 text-xs text-text-muted">
-            <Sparkles size={13} className="text-secondary" />
-            <span className="font-semibold uppercase tracking-wider">Quick Demo Access</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {ROLES.map((r) => (
-              <button
-                key={`quick-${r.id}`}
-                type="button"
-                onClick={() => handleQuickDemoLogin(r.id)}
-                className="text-xs px-2.5 py-1.5 rounded-lg bg-surface-low hover:bg-primary-50 hover:text-primary border border-surface-border text-text-secondary font-medium transition-colors"
-              >
-                Launch as {r.title}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
     </Modal>
   );

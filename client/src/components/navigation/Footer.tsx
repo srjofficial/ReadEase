@@ -1,23 +1,22 @@
 import React from 'react';
-import { BookOpen, Heart, Sparkles, ShieldCheck } from 'lucide-react';
+import { Heart, Sparkles, ShieldCheck } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   return (
     <footer
       aria-label="Site Footer"
-      className="bg-surface-lowest dark:bg-surface-dark border-t border-surface-border transition-colors duration-200"
+      className="bg-surface-lowest border-t border-surface-border transition-colors duration-200"
     >
       <div className="max-w-container mx-auto px-6 py-12 md:py-16">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12">
           {/* Column 1: Brand & Disclaimer */}
           <div className="md:col-span-2 space-y-4">
-            <div className="flex items-center gap-2.5">
-              <div className="bg-primary-container p-2 rounded-lg text-white shadow-soft">
-                <BookOpen size={20} aria-hidden="true" />
-              </div>
-              <span className="text-headline-md font-bold text-primary tracking-tight">
-                ReadEase
-              </span>
+            <div className="flex items-center">
+              <img
+                src="/ReadEase_wordmark_transparent.svg"
+                alt="ReadEase"
+                className="h-8 md:h-9 w-auto object-contain"
+              />
             </div>
 
             <p className="text-body-md text-text-secondary max-w-md leading-relaxed">

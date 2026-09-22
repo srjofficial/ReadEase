@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import APIRouter, Depends, HTTPException, status
 from app.core.security import verify_service_secret
 from app.schemas.gaze import (
@@ -5,14 +6,75 @@ from app.schemas.gaze import (
     FrameEnqueueResponse,
     SessionMetricsResponse,
     SessionEndResponse,
+    MeshAnalysisRequest,
+    FaceMeshAnalysisResult,
+    DyslexiaScreeningRequest,
+    DyslexiaScreeningResponse,
 )
 from app.services.gaze.gaze_service import GazeService
+from app.services.gaze.estimator import GazeEstimator
+from app.services.gaze.queue_manager import GazeQueueManager
+from app.services.screening.dyslexia_detector import DyslexiaDetector
 
 router = APIRouter(
     prefix="/api/assessment",
     tags=["Assessment & Gaze Tracking"],
     dependencies=[Depends(verify_service_secret)],
 )
+
+
+@router.post(
+    "/screen-dyslexia",
+    response_model=DyslexiaScreeningResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Screen dyslexia risk using Random Forest model trained on DD-main dataset",
+)
+async def screen_dyslexia(payload: DyslexiaScreeningRequest) -> DyslexiaScreeningResponse:
+    """
+    Evaluates student session gaze metrics against the scientific DD-main benchmark
+    (PLoS ONE 2023, 4,298 subjects), producing risk probability, cohort comparisons,
+    and tailored reading accommodation parameters.
+    """
+    return await asyncio.to_thread(DyslexiaDetector.screen_reading_session, payload)
+
+
+
+@router.post(
+    "/mesh-analysis",
+    response_model=FaceMeshAnalysisResult,
+    status_code=status.HTTP_200_OK,
+    summary="Direct synchronous OpenCV and 478-point Face Mesh Analysis on frame snapshot",
+)
+async def analyze_face_mesh(payload: MeshAnalysisRequest) -> FaceMeshAnalysisResult:
+    """
+    Direct OpenCV + MediaPipe 478-point 3D Face Mesh inference.
+    Extracts face oval contours, iris positions, EAR blink metrics, head pose orientation,
+    and returns immediate telemetry while updating background session metrics.
+    """
+    image = await asyncio.to_thread(GazeEstimator.decode_image, payload.image_base64)
+    if image is None:
+        return FaceMeshAnalysisResult(
+            face_detected=False,
+            confidence=0.0,
+            timestamp_ms=payload.timestamp_ms,
+            lighting_quality="unknown"
+        )
+
+    mesh_result = await asyncio.to_thread(
+        GazeEstimator.analyze_face_mesh, image, payload.timestamp_ms
+    )
+
+    # Accumulate metrics into active session if session_id provided
+    if payload.session_id and payload.student_id and mesh_result.gaze_point and mesh_result.face_detected:
+        try:
+            session = await GazeQueueManager.get_or_create_session(
+                payload.session_id, payload.student_id
+            )
+            session.accumulator.process_gaze_point(mesh_result.gaze_point)
+        except Exception:
+            pass
+
+    return mesh_result
 
 
 @router.post(

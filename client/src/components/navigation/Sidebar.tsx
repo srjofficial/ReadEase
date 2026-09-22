@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLanguage } from '../../context/LanguageContext';
 import {
   LayoutDashboard,
   BookOpen,
@@ -48,48 +49,50 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onLogout,
   onPrimaryAction
 }) => {
+  const { t } = useLanguage();
+
   const getRoleConfig = () => {
     switch (role) {
       case 'student':
         return {
-          title: 'Student Portal',
-          primaryActionLabel: 'Start Daily Practice',
+          title: t('nav.studentPortal', 'Student Portal'),
+          primaryActionLabel: t('nav.startPractice', 'Start Daily Practice'),
           primaryActionIcon: <Play size={18} />,
           navItems: [
             {
               id: 'dashboard',
-              label: 'Dashboard',
+              label: t('nav.dashboard', 'Dashboard'),
               icon: <LayoutDashboard size={20} />,
               href: '#dashboard'
             },
             {
               id: 'reading-studio',
-              label: 'Reading Studio',
+              label: t('nav.readingStudio', 'Reading Studio'),
               icon: <BookOpen size={20} />,
               href: '#studio',
               badge: 'Active'
             },
             {
               id: 'library',
-              label: 'My Documents',
+              label: t('nav.myDocuments', 'My Documents'),
               icon: <FolderKanban size={20} />,
               href: '#library'
             },
             {
               id: 'progress',
-              label: 'Achievements & Badges',
+              label: t('nav.achievements', 'Achievements & Badges'),
               icon: <Award size={20} />,
               href: '#progress'
             },
             {
               id: 'assessment',
-              label: 'Reading Assessment',
+              label: t('nav.assessment', 'Reading Assessment'),
               icon: <Activity size={20} />,
               href: '#assessment'
             },
             {
               id: 'preferences',
-              label: 'Reading Customizer',
+              label: t('nav.customizer', 'Reading Customizer'),
               icon: <SlidersHorizontal size={20} />,
               href: '#preferences'
             }
@@ -260,18 +263,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Top Header & User Card */}
       <div className="space-y-6">
         {/* Brand */}
-        <div className="flex items-center gap-3">
-          <div className="bg-primary-container p-2.5 rounded-xl text-white shadow-soft">
-            <BookOpen size={22} aria-hidden="true" />
-          </div>
-          <div>
-            <span className="text-headline-md font-bold text-primary block leading-none">
-              ReadEase
-            </span>
-            <span className="text-xs font-semibold text-secondary uppercase tracking-wider">
-              {config.title}
-            </span>
-          </div>
+        <div className="space-y-1.5">
+          <a href="/" className="block focus-visible:ring-2 focus-visible:ring-primary rounded-lg">
+            <img
+              src="/ReadEase_wordmark_transparent.svg"
+              alt="ReadEase"
+              className="h-8 md:h-9 w-auto object-contain hover:opacity-90 transition-opacity"
+            />
+          </a>
+          <span className="text-xs font-semibold text-secondary uppercase tracking-wider block pl-0.5">
+            {config.title}
+          </span>
         </div>
 
         {/* User Status Card */}
@@ -341,7 +343,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           className="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-label-md font-medium text-text-secondary hover:bg-feedback-errorContainer hover:text-feedback-error transition-colors focus-visible:ring-2 focus-visible:ring-feedback-error"
         >
           <LogOut size={18} />
-          <span>Log Out</span>
+          <span>{t('nav.logout', 'Log Out')}</span>
         </button>
       </div>
     </aside>

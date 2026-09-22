@@ -22,6 +22,9 @@ export type ColorTheme =
   | 'high-contrast-black'
   | 'high-contrast-white';
 
+export type VoiceGender = 'female' | 'male' | 'neutral';
+export type VoicePersona = 'tutor' | 'storyteller' | 'calm' | 'academic';
+
 export interface ReadingPreferences {
   fontSize: number; // in px
   lineHeight: number; // multiplier e.g. 1.5, 2.0
@@ -36,6 +39,9 @@ export interface ReadingPreferences {
   ttsRate: number; // 0.5 to 2.0
   ttsPitch: number;
   ttsVoice: string;
+  voiceGender?: VoiceGender;
+  voicePersona?: VoicePersona;
+  ttsLanguage?: 'en' | 'ml' | 'auto';
   syllableBreakdown: boolean;
 }
 

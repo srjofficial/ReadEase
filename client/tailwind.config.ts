@@ -7,12 +7,61 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: designTokens.colors.background,
-        surface: designTokens.colors.surface,
-        primary: designTokens.colors.primary,
-        secondary: designTokens.colors.secondary,
-        tertiary: designTokens.colors.tertiary,
-        text: designTokens.colors.text,
+        background: {
+          cream: 'rgb(var(--bg-cream-rgb) / <alpha-value>)',
+          canvas: 'rgb(var(--bg-canvas-rgb) / <alpha-value>)',
+          paper: 'rgb(var(--bg-paper-rgb) / <alpha-value>)',
+          dark: '#131315'
+        },
+        surface: {
+          lowest: 'rgb(var(--surface-lowest-rgb) / <alpha-value>)',
+          low: 'rgb(var(--surface-low-rgb) / <alpha-value>)',
+          DEFAULT: 'rgb(var(--surface-default-rgb) / <alpha-value>)',
+          high: 'rgb(var(--surface-high-rgb) / <alpha-value>)',
+          highest: 'rgb(var(--surface-highest-rgb) / <alpha-value>)',
+          fillable: 'rgb(var(--surface-fillable-rgb) / <alpha-value>)',
+          border: 'rgb(var(--surface-border-rgb) / <alpha-value>)'
+        },
+        primary: {
+          50: 'rgb(var(--color-primary-50-rgb) / <alpha-value>)',
+          100: designTokens.colors.primary[100],
+          200: 'rgb(var(--color-primary-200-rgb) / <alpha-value>)',
+          300: designTokens.colors.primary[300],
+          400: designTokens.colors.primary[400],
+          500: designTokens.colors.primary[500],
+          DEFAULT: 'rgb(var(--color-primary-rgb) / <alpha-value>)',
+          container: 'rgb(var(--color-primary-container-rgb) / <alpha-value>)',
+          onContainer: designTokens.colors.primary.onContainer,
+          hover: designTokens.colors.primary.hover,
+          dark: designTokens.colors.primary.dark
+        },
+        secondary: {
+          50: 'rgb(var(--color-secondary-50-rgb) / <alpha-value>)',
+          100: designTokens.colors.secondary[100],
+          200: 'rgb(var(--color-secondary-200-rgb) / <alpha-value>)',
+          300: designTokens.colors.secondary[300],
+          400: designTokens.colors.secondary[400],
+          DEFAULT: 'rgb(var(--color-secondary-rgb) / <alpha-value>)',
+          container: designTokens.colors.secondary.container,
+          onContainer: designTokens.colors.secondary.onContainer,
+          dark: 'rgb(var(--color-secondary-dark-rgb) / <alpha-value>)'
+        },
+        tertiary: {
+          50: 'rgb(var(--color-tertiary-50-rgb) / <alpha-value>)',
+          100: designTokens.colors.tertiary[100],
+          200: 'rgb(var(--color-tertiary-200-rgb) / <alpha-value>)',
+          300: designTokens.colors.tertiary[300],
+          DEFAULT: 'rgb(var(--color-tertiary-rgb) / <alpha-value>)',
+          container: designTokens.colors.tertiary.container,
+          onContainer: designTokens.colors.tertiary.onContainer,
+          dark: 'rgb(var(--color-tertiary-dark-rgb) / <alpha-value>)'
+        },
+        text: {
+          primary: 'rgb(var(--text-primary-rgb) / <alpha-value>)',
+          secondary: 'rgb(var(--text-secondary-rgb) / <alpha-value>)',
+          muted: 'rgb(var(--text-muted-rgb) / <alpha-value>)',
+          inverse: 'rgb(var(--text-inverse-rgb) / <alpha-value>)'
+        },
         feedback: designTokens.colors.feedback
       },
       fontFamily: {

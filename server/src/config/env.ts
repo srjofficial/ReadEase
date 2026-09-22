@@ -68,10 +68,30 @@ const envSchema = z.object({
   LLM_MODEL: z.string().default('llama-3.3-70b-versatile'),
   LLM_BASE_URL: z.string().default('https://api.groq.com/openai/v1'),
   AI_SERVICE_URL: z.string().url().default('http://localhost:8000'),
+  AI_SERVICE_SECRET: z.string().default('readease_internal_secret_key_change_in_production'),
 
   // Rate Limiting
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(900000), // 15 mins
-  RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(100)
+  RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(100),
+
+  // Frontend URL (used for verification email links)
+  FRONTEND_URL: z.string().url().default('http://localhost:5173'),
+
+  // Google OAuth
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+
+  // 📧 Email Configuration (Resend API primary, SMTP optional fallback)
+  RESEND_API_KEY: z.string().optional(),
+  RESEND_FROM: z.string().default('ReadEase <onboarding@resend.dev>'),
+
+  // Optional SMTP fallback
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().default(587),
+  SMTP_SECURE: z.preprocess((val) => val === 'true' || val === true, z.boolean().default(false)),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().default('"ReadEase Support" <noreply@readease.edu>')
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

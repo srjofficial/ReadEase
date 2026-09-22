@@ -39,6 +39,11 @@ out/
 *.key
 *key*.txt
 api key.txt
+client_secret*.json
+TEST_ACCOUNTS.txt
+EMAIL_PREVIEW.html
+*.zip
+*.pdf
 
 # Python
 __pycache__/

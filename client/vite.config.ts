@@ -11,6 +11,9 @@ export default defineConfig({
       '@readease/shared': path.resolve(__dirname, '../packages/shared/src')
     }
   },
+  optimizeDeps: {
+    include: ['@mediapipe/face_mesh']
+  },
   server: {
     port: 5173,
     host: true,

@@ -16,8 +16,10 @@ export * from './notification.model';
 export * from './chatConversation.model';
 export * from './knowledgeDocument.model';
 export * from './knowledgeChunk.model';
+export * from './otp.model';
 
 import { User } from './user.model';
+import { Otp } from './otp.model';
 import { TeacherProfile } from './teacherProfile.model';
 import { StudentProfile } from './studentProfile.model';
 import { SpecialEducatorProfile } from './specialEducatorProfile.model';
@@ -33,6 +35,7 @@ import { KnowledgeChunk } from './knowledgeChunk.model';
 
 export const models = {
   User,
+  Otp,
   TeacherProfile,
   StudentProfile,
   SpecialEducatorProfile,

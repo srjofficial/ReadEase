@@ -9,9 +9,11 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
-    "test": "echo \"Client test suite configured\""
+    "test": "npx tsx src/eye-tracking/__tests__/pipeline.test.ts"
   },
   "dependencies": {
+    "@mediapipe/camera_utils": "^0.3.1675466862",
+    "@mediapipe/face_mesh": "^0.4.1633559619",
     "@readease/shared": "*",
     "lucide-react": "^0.378.0",
     "react": "^18.3.1",

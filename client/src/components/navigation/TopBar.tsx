@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLanguage } from '../../context/LanguageContext';
 import { Search, Bell, SlidersHorizontal, Globe, Sparkles, Moon, Sun } from 'lucide-react';
 
 export interface TopBarProps {
@@ -15,13 +16,16 @@ export interface TopBarProps {
 export const TopBar: React.FC<TopBarProps> = ({
   pageTitle = 'Dashboard',
   breadcrumbs = ['Home', 'Dashboard'],
-  currentLanguage = 'EN',
+  currentLanguage,
   onLanguageToggle,
   onPreferencesClick,
   isDarkMode = false,
   onDarkModeToggle,
   onSearchChange
 }) => {
+  const { language, toggleLanguage, t } = useLanguage();
+  const effectiveLang = currentLanguage || language;
+
   return (
     <header
       aria-label="Dashboard Top Bar"
@@ -58,7 +62,10 @@ export const TopBar: React.FC<TopBarProps> = ({
           />
           <input
             type="search"
-            placeholder="Search documents, reading tools, or vocabulary..."
+            placeholder={t(
+              'nav.searchPlaceholder',
+              'Search documents, reading tools, or vocabulary...'
+            )}
             onChange={(e) => onSearchChange?.(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-surface-low border border-surface-border rounded-xl text-label-md text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary focus:bg-surface-lowest transition-all"
           />
@@ -75,7 +82,9 @@ export const TopBar: React.FC<TopBarProps> = ({
           className="flex items-center gap-2 px-3 py-2 bg-primary-50 text-primary-container rounded-xl text-label-md font-semibold hover:bg-primary-100 transition-colors border border-primary-200 shadow-soft"
         >
           <SlidersHorizontal size={16} />
-          <span className="hidden sm:inline">Reading Accommodations</span>
+          <span className="hidden sm:inline">
+            {t('nav.accommodations', 'Reading Accommodations')}
+          </span>
         </button>
 
         {/* Dark/Light Mode Toggle */}
@@ -91,12 +100,12 @@ export const TopBar: React.FC<TopBarProps> = ({
         {/* Bilingual Switcher */}
         <button
           type="button"
-          onClick={onLanguageToggle}
-          aria-label="Toggle language between English and Malayalam"
-          className="flex items-center gap-1.5 px-3 py-2 text-label-md font-medium text-text-secondary hover:bg-surface-low rounded-xl transition-colors"
+          onClick={onLanguageToggle || toggleLanguage}
+          aria-label={`Toggle language. Current language is ${effectiveLang === 'EN' ? 'English' : 'Malayalam'}`}
+          className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-surface-border bg-surface-low hover:bg-surface text-text-primary transition-all shadow-xs"
         >
-          <Globe size={18} />
-          <span className="font-semibold">{currentLanguage}</span>
+          <Globe size={16} className="text-primary" />
+          <span className="font-bold">{effectiveLang === 'EN' ? 'EN' : 'മലയാളം'}</span>
         </button>
 
         {/* Notification Bell */}
@@ -114,7 +123,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         {/* AI Assistant Quick Pill */}
         <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-secondary-50 text-secondary-dark rounded-full text-xs font-bold border border-secondary-200">
           <Sparkles size={14} className="text-secondary" />
-          <span>AI Assist Active</span>
+          <span>{t('nav.aiAssist', 'AI Assist Active')}</span>
         </div>
       </div>
     </header>

@@ -4,6 +4,46 @@
 
 @layer base {
   :root {
+    /* Background Canvas */
+    --bg-cream-rgb: 250 246 239; /* #FAF6EF */
+    --bg-canvas-rgb: 251 248 252; /* #FBF8FC */
+    --bg-paper-rgb: 255 255 255;
+    --bg-dark-rgb: 19 19 21;
+
+    /* Surfaces */
+    --surface-lowest-rgb: 255 255 255; /* Cards, Sidebars, Topbars */
+    --surface-low-rgb: 245 243 246; /* Chips, Tags, Inputs */
+    --surface-default-rgb: 240 237 241;
+    --surface-high-rgb: 234 231 235;
+    --surface-highest-rgb: 228 226 229;
+    --surface-fillable-rgb: 245 240 232;
+    --surface-border-rgb: 229 224 216; /* Soft border */
+
+    /* Typography */
+    --text-primary-rgb: 43 43 46; /* Charcoal #2B2B2E */
+    --text-secondary-rgb: 69 70 82; /* #454652 */
+    --text-muted-rgb: 117 118 131; /* #757683 */
+    --text-inverse-rgb: 242 240 244; /* #F2F0F4 */
+
+    /* Primary Authority */
+    --color-primary-rgb: 32 51 144; /* #203390 */
+    --color-primary-container-rgb: 58 76 168; /* #3A4CA8 */
+    --color-primary-50-rgb: 238 242 255; /* #EEF2FF */
+    --color-primary-200-rgb: 199 210 254; /* #C7D2FE */
+
+    /* Secondary Warm Amber */
+    --color-secondary-rgb: 232 163 61; /* #E8A33D */
+    --color-secondary-50-rgb: 255 251 235; /* #FFFBEB */
+    --color-secondary-200-rgb: 253 230 138; /* #FDE68A */
+    --color-secondary-dark-rgb: 131 84 0; /* #835400 */
+
+    /* Tertiary Sage Green */
+    --color-tertiary-rgb: 78 159 110; /* #4E9F6E */
+    --color-tertiary-50-rgb: 240 253 244; /* #F0FDF4 */
+    --color-tertiary-200-rgb: 187 247 208; /* #BBF7D0 */
+    --color-tertiary-dark-rgb: 0 71 39; /* #004727 */
+
+    /* Legacy compatibility variables */
     --bg-canvas: #faf6ef;
     --text-main: #2b2b2e;
     --text-muted: #454652;
@@ -15,7 +55,48 @@
     --card-border: #e5e0d8;
   }
 
-  [data-theme='dark'] {
+  [data-theme='dark'],
+  .dark {
+    /* Background Canvas */
+    --bg-cream-rgb: 19 19 21; /* #131315 Deep accessible dark mode canvas */
+    --bg-canvas-rgb: 19 19 21;
+    --bg-paper-rgb: 30 30 36;
+    --bg-dark-rgb: 19 19 21;
+
+    /* Surfaces */
+    --surface-lowest-rgb: 30 30 36; /* #1E1E24 Elevated dark surface */
+    --surface-low-rgb: 37 37 45; /* #25252D Subtle card/input background */
+    --surface-default-rgb: 45 45 55;
+    --surface-high-rgb: 54 54 66;
+    --surface-highest-rgb: 65 65 79;
+    --surface-fillable-rgb: 37 37 45;
+    --surface-border-rgb: 56 56 68; /* #383844 High-legibility dark border */
+
+    /* Typography */
+    --text-primary-rgb: 242 240 244; /* #F2F0F4 High legibility off-white */
+    --text-secondary-rgb: 197 195 204; /* #C5C3CC Soft silver */
+    --text-muted-rgb: 149 148 158; /* #95949E Tertiary muted silver */
+    --text-inverse-rgb: 27 27 30; /* #1B1B1E */
+
+    /* Primary Accent */
+    --color-primary-rgb: 110 168 254; /* #6EA8FE Accessible sky-indigo */
+    --color-primary-container-rgb: 58 91 176;
+    --color-primary-50-rgb: 30 42 75; /* Dark navy pill tint */
+    --color-primary-200-rgb: 55 75 125;
+
+    /* Secondary Accent */
+    --color-secondary-rgb: 254 182 78; /* #FEB64E Warm luminous amber */
+    --color-secondary-50-rgb: 48 36 18; /* Dark amber pill tint */
+    --color-secondary-200-rgb: 90 70 30;
+    --color-secondary-dark-rgb: 254 182 78;
+
+    /* Tertiary Accent */
+    --color-tertiary-rgb: 135 218 164; /* #87DAA4 Fresh luminous sage */
+    --color-tertiary-50-rgb: 22 42 32; /* Dark sage pill tint */
+    --color-tertiary-200-rgb: 40 80 55;
+    --color-tertiary-dark-rgb: 135 218 164;
+
+    /* Legacy compatibility variables */
     --bg-canvas: #131315;
     --text-main: #f2f0f4;
     --text-muted: #bec7d4;
@@ -24,18 +105,21 @@
     --color-secondary: #feb64e;
     --color-tertiary: #87daa4;
     --card-surface: #1e1e24;
-    --card-border: #333338;
+    --card-border: #383844;
   }
 
   body {
-    background-color: var(--bg-canvas);
-    color: var(--text-main);
+    background-color: rgb(var(--bg-cream-rgb));
+    color: rgb(var(--text-primary-rgb));
     font-family: 'Lexend', 'Atkinson Hyperlegible', system-ui, sans-serif;
     line-height: 1.75;
     letter-spacing: 0.025em;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
   }
 
   /* Accessibility Defaults */
@@ -72,5 +156,51 @@
     border-top: 2px solid rgba(232, 163, 61, 0.6);
     border-bottom: 2px solid rgba(232, 163, 61, 0.6);
     z-index: 9999;
+  }
+
+  @keyframes bot-float {
+    0%,
+    100% {
+      transform: translateY(0px) rotate(0deg);
+    }
+    50% {
+      transform: translateY(-6px) rotate(-3deg);
+    }
+  }
+
+  @keyframes bot-glow {
+    0%,
+    100% {
+      box-shadow:
+        0 0 16px rgba(32, 51, 144, 0.35),
+        0 0 30px rgba(232, 163, 61, 0.25);
+    }
+    50% {
+      box-shadow:
+        0 0 28px rgba(32, 51, 144, 0.65),
+        0 0 45px rgba(232, 163, 61, 0.45);
+    }
+  }
+
+  @keyframes bot-badge-pulse {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.06);
+    }
+  }
+
+  .animate-bot-float {
+    animation: bot-float 3.5s ease-in-out infinite;
+  }
+
+  .animate-bot-glow {
+    animation: bot-glow 2.5s ease-in-out infinite;
+  }
+
+  .animate-bot-badge {
+    animation: bot-badge-pulse 2s ease-in-out infinite;
   }
 }

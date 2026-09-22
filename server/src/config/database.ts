@@ -23,7 +23,7 @@ const mongooseOptions: ConnectOptions = {
   dbName: env.MONGODB_DATABASE_NAME,
   maxPoolSize: env.MONGODB_MAX_POOL_SIZE,
   minPoolSize: env.MONGODB_MIN_POOL_SIZE,
-  serverSelectionTimeoutMS: isProd ? env.MONGODB_CONNECT_TIMEOUT_MS : 2500,
+  serverSelectionTimeoutMS: env.MONGODB_CONNECT_TIMEOUT_MS,
   socketTimeoutMS: 45000,
   autoIndex: !isProd // Build indexes automatically in dev/test only
 };
@@ -32,8 +32,8 @@ const mongooseOptions: ConnectOptions = {
  * Connect to MongoDB with retry-on-startup and backoff
  */
 export const connectDatabase = async (): Promise<boolean> => {
-  if (isConnected) {
-    logger.info('MongoDB is already connected.');
+  if (mongoose.connection.readyState === 1) {
+    isConnected = true;
     return true;
   }
 
@@ -66,29 +66,29 @@ export const connectDatabase = async (): Promise<boolean> => {
     });
   }
 
-  while (retryAttempt < MAX_RETRIES) {
+  let attempt = 0;
+  while (attempt < MAX_RETRIES) {
     try {
-      retryAttempt++;
+      attempt++;
       logger.info(
         {
-          attempt: retryAttempt,
+          attempt,
           maxRetries: MAX_RETRIES,
           uri: env.MONGODB_URI.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@')
         },
-        `Attempting MongoDB connection [${retryAttempt}/${MAX_RETRIES}]...`
+        `Attempting MongoDB connection [${attempt}/${MAX_RETRIES}]...`
       );
 
       await mongoose.connect(env.MONGODB_URI, mongooseOptions);
       isConnected = true;
-      retryAttempt = 0;
       return true;
     } catch (error) {
       logger.error(
-        { err: error, attempt: retryAttempt, maxRetries: MAX_RETRIES },
-        `Failed to connect to MongoDB on attempt ${retryAttempt}`
+        { err: error, attempt, maxRetries: MAX_RETRIES },
+        `Failed to connect to MongoDB on attempt ${attempt}`
       );
 
-      if (retryAttempt >= MAX_RETRIES) {
+      if (attempt >= MAX_RETRIES) {
         if (isProd) {
           logger.fatal(
             'Could not connect to MongoDB Atlas after maximum retry attempts. Exiting process.'
@@ -102,7 +102,7 @@ export const connectDatabase = async (): Promise<boolean> => {
         }
       }
 
-      const delay = INITIAL_RETRY_DELAY_MS * Math.pow(2, retryAttempt - 1);
+      const delay = INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt - 1);
       logger.info(`Retrying MongoDB connection in ${delay / 1000}s...`);
       await new Promise((resolve) => setTimeout(resolve, delay));
     }

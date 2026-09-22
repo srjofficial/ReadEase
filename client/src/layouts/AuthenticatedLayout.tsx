@@ -58,7 +58,13 @@ export const AuthenticatedLayout: React.FC<AuthenticatedLayoutProps> = ({
           >
             <Menu size={24} />
           </button>
-          <span className="font-bold text-primary text-headline-md">ReadEase</span>
+          <a href="/" className="inline-flex items-center">
+            <img
+              src="/ReadEase_wordmark_transparent.svg"
+              alt="ReadEase"
+              className="h-7 w-auto object-contain"
+            />
+          </a>
           <span className="text-xs uppercase font-semibold text-secondary px-2 py-1 bg-secondary-50 rounded-full border border-secondary-200">
             {role}
           </span>

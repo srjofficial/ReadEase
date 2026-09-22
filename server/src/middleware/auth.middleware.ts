@@ -54,6 +54,40 @@ export const authenticate = async (
 };
 
 /**
+ * Optional Authentication Middleware:
+ * Attaches user to req.user if valid Bearer token is provided, otherwise proceeds without error
+ */
+export const authenticateOptional = async (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    let token: string | undefined;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    }
+
+    if (token) {
+      const payload = TokenService.verifyAccessToken(token);
+      req.user = {
+        id: payload.sub,
+        _id: new Types.ObjectId(payload.sub),
+        name: payload.name,
+        email: payload.email,
+        role: payload.role,
+        status: payload.status
+      };
+    }
+    next();
+  } catch {
+    // Gracefully ignore token errors for optional auth
+    next();
+  }
+};
+
+/**
  * Role-Based Access Control (RBAC) Middleware:
  * Validates that authenticated user has one of the required roles
  */

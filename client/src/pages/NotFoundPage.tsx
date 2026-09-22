@@ -40,10 +40,11 @@ export const NotFoundPage: React.FC<NotFoundPageProps> = ({
 
   const handleGoHome = onNavigateHome || (() => navigate('/'));
   const handleGoLibrary = onNavigateLibrary || (() => navigate('/catalog'));
-  const handleGoDashboard = onNavigateDashboard || (() => navigate('/dashboard'));
-  const handleGoAssessment = onNavigateAssessment || (() => navigate('/dashboard#assessment'));
-  const handleGoAiAssistant = onNavigateAiAssistant || (() => navigate('/dashboard#assistant'));
-  const handleGoSettings = onNavigateSettings || (() => navigate('/dashboard#preferences'));
+  const handleGoDashboard = onNavigateDashboard || (() => navigate('/student/dashboard'));
+  const handleGoAssessment =
+    onNavigateAssessment || (() => navigate('/student/reading-assessment'));
+  const handleGoAiAssistant = onNavigateAiAssistant || (() => navigate('/student/reading-studio'));
+  const handleGoSettings = onNavigateSettings || (() => navigate('/student/customizer'));
   const [searchQuery, setSearchQuery] = useState('');
   const [searchSubmitted, setSearchSubmitted] = useState(false);
   const [showReadingRuler, setShowReadingRuler] = useState(false);
