@@ -11,12 +11,14 @@ export const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12">
           {/* Column 1: Brand & Disclaimer */}
           <div className="md:col-span-2 space-y-4">
-            <div className="flex items-center">
-              <img
-                src="/ReadEase_wordmark_transparent.svg"
-                alt="ReadEase"
-                className="h-8 md:h-9 w-auto object-contain"
-              />
+            <div className="flex items-center shrink-0">
+              <div className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#10204d] to-[#1a3275] border border-[#2b449b]/40 shadow-soft inline-flex items-center">
+                <img
+                  src="/ReadEase_wordmark_transparent.svg"
+                  alt="ReadEase"
+                  className="h-7 md:h-8 w-auto min-w-[110px] object-contain shrink-0"
+                />
+              </div>
             </div>
 
             <p className="text-body-md text-text-secondary max-w-md leading-relaxed">
@@ -26,7 +28,7 @@ export const Footer: React.FC = () => {
 
             <div className="p-4 bg-surface-low border border-surface-border rounded-xl space-y-1.5 max-w-lg">
               <div className="flex items-center gap-2 text-label-md font-semibold text-text-primary">
-                <ShieldCheck size={16} className="text-secondary" />
+                <ShieldCheck size={16} className="text-secondary shrink-0" />
                 <span>Screening & Assistive Aid Notice</span>
               </div>
               <p className="text-xs text-text-muted leading-normal">
@@ -82,7 +84,7 @@ export const Footer: React.FC = () => {
                   href="#accessibility"
                   className="hover:text-primary transition-colors flex items-center gap-1.5"
                 >
-                  <Sparkles size={14} className="text-secondary" />
+                  <Sparkles size={14} className="text-secondary shrink-0" />
                   <span>WCAG 2.1 AA Statement</span>
                 </a>
               </li>
@@ -115,7 +117,7 @@ export const Footer: React.FC = () => {
           <p>© {new Date().getFullYear()} ReadEase Platform. All rights reserved.</p>
           <div className="flex items-center gap-2">
             <span>Built with care for neurodivergent accessibility</span>
-            <Heart size={14} className="text-feedback-error fill-feedback-error" />
+            <Heart size={14} className="text-feedback-error fill-feedback-error shrink-0" />
           </div>
         </div>
       </div>

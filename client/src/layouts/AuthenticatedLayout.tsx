@@ -58,11 +58,14 @@ export const AuthenticatedLayout: React.FC<AuthenticatedLayoutProps> = ({
           >
             <Menu size={24} />
           </button>
-          <a href="/" className="inline-flex items-center">
+          <a
+            href="/"
+            className="inline-flex items-center px-2.5 py-1 rounded-lg bg-gradient-to-r from-[#10204d] to-[#1a3275] border border-[#2b449b]/40 shadow-soft"
+          >
             <img
               src="/ReadEase_wordmark_transparent.svg"
               alt="ReadEase"
-              className="h-7 w-auto object-contain"
+              className="h-6 w-auto object-contain"
             />
           </a>
           <span className="text-xs uppercase font-semibold text-secondary px-2 py-1 bg-secondary-50 rounded-full border border-secondary-200">

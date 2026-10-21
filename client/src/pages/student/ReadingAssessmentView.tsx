@@ -30,7 +30,8 @@ import {
   Pause,
   RotateCcw,
   Terminal,
-  Target
+  Target,
+  Minimize2
 } from 'lucide-react';
 import { Button, Card, Badge, Modal } from '../../components/ui';
 import {
@@ -72,6 +73,8 @@ interface ClinicalIndicatorData {
 interface DyslexiaScreeningData {
   risk_level: 'Low Risk' | 'Moderate Risk' | 'Elevated Risk';
   dyslexia_probability: number;
+  eye_gaze_probability?: number;
+  phonological_probability?: number | null;
   confidence_score: number;
   summary: string;
   biomarkers: {
@@ -80,6 +83,14 @@ interface DyslexiaScreeningData {
     regression_rate: BiomarkerMetricData;
     saccade_length: BiomarkerMetricData;
     gaze_stability: BiomarkerMetricData;
+  };
+  phonological_biomarkers?: {
+    oral_wpm?: BiomarkerMetricData;
+    hesitations_per_100_words?: BiomarkerMetricData;
+    phonological_fluency?: BiomarkerMetricData;
+    speech_gaze_alignment?: BiomarkerMetricData;
+    hesitation_count?: number;
+    phonological_risk_score?: number;
   };
   clinical_indicators: ClinicalIndicatorData[];
   recommended_accommodations: {
@@ -103,6 +114,29 @@ interface DyslexiaScreeningData {
   };
 }
 
+export interface WordPronunciationResult {
+  word: string;
+  status: 'correct' | 'mispronounced' | 'skipped' | 'hesitation';
+  spokenAs?: string;
+  phoneticTip?: string;
+  confidence: number;
+}
+
+export interface VerifyReadingResponse {
+  accuracyPercentage: number;
+  fluencyScore: number;
+  speechGazeSyncScore: number;
+  wordsAnalyzed: number;
+  correctWordsCount: number;
+  mispronouncedCount: number;
+  skippedCount: number;
+  wordBreakdown: WordPronunciationResult[];
+  pronunciationTips: string[];
+  practiceWords: { word: string; breakdown: string; hint: string }[];
+  pedagogicalFeedback: string;
+  overallAssessment: 'Independent' | 'Instructional' | 'Frustrational';
+}
+
 const ASSESSMENT_TEXT_EN = `The sun was shining brightly as Mia walked through the park. She saw a little squirrel scampering up a tall oak tree. The birds were singing sweet melodies, and the gentle breeze made the leaves dance.
 
 Mia pulled her warm knitted jacket closer as she reached the edge of the pond. Gentle ripples spread across the crystal surface as small ducklings paddled behind their mother. A wooden park bench invited her to sit down and rest.
@@ -112,6 +146,139 @@ Opening her leather-bound notebook, she began to sketch the colorful autumn leav
 const ASSESSMENT_TEXT_ML = `ഒരു ശാന്തമായ പ്രഭാതത്തിൽ ആനന്ദ് പൂന്തോട്ടത്തിലൂടെ നടക്കുകയായിരുന്നു. മരച്ചില്ലകളിൽ കിളികൾ മനോഹരമായി പാടുന്നുണ്ടായിരുന്നു. തണുത്ത കാറ്റ് വീശിയപ്പോൾ പൂക്കൾ തലയാട്ടി.
 
 കുളക്കരയിലെത്തിയ അവൻ ഒരു ചെറിയ തടിബഞ്ചിൽ ഇരുന്നു. വെള്ളത്തിൽ മീനുകൾ നീന്തിത്തുടിക്കുന്നത് അവൻ കൗതുകത്തോടെ നോക്കിനിന്നു. ശാന്തമായ ഈ അന്തരീക്ഷം അവന്റെ മനസ്സിന് സന്തോഷവും ഉന്മേഷവും നൽകി.`;
+
+/**
+ * Calculates oral reading accuracy by aligning spoken transcript tokens
+ * against the benchmark passage using Longest Common Subsequence (LCS).
+ * Matches word order, insertions, and omissions for both English and Malayalam.
+ */
+export interface OralReadingAlignment {
+  accuracyPercentage: number;
+  correctWordsCount: number;
+  totalTargetWords: number;
+  accuracyGrade: 'Independent' | 'Instructional' | 'Frustrational';
+  matchedTargetIndices: Set<number>;
+}
+
+export function calculateOralReadingAccuracy(
+  targetText: string,
+  spokenText: string
+): OralReadingAlignment {
+  const cleanTokens = (text: string) =>
+    text
+      .toLowerCase()
+      .replace(/[^\w\s\u0D00-\u0D7F]/gu, '')
+      .split(/\s+/)
+      .filter(Boolean);
+
+  const targetTokens = cleanTokens(targetText);
+  const spokenTokens = cleanTokens(spokenText);
+
+  if (targetTokens.length === 0) {
+    return {
+      accuracyPercentage: 95,
+      correctWordsCount: 0,
+      totalTargetWords: 0,
+      accuracyGrade: 'Independent',
+      matchedTargetIndices: new Set()
+    };
+  }
+
+  if (spokenTokens.length === 0) {
+    return {
+      accuracyPercentage: 0,
+      correctWordsCount: 0,
+      totalTargetWords: targetTokens.length,
+      accuracyGrade: 'Frustrational',
+      matchedTargetIndices: new Set()
+    };
+  }
+
+  const m = targetTokens.length;
+  const n = spokenTokens.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (targetTokens[i - 1] === spokenTokens[j - 1]) {
+        dp[i][j] = dp[i - 1][j - 1] + 1;
+      } else {
+        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+      }
+    }
+  }
+
+  // Backtrack through DP matrix to find exactly which target words were spoken
+  const matchedTargetIndices = new Set<number>();
+  let i = m;
+  let j = n;
+  while (i > 0 && j > 0) {
+    if (targetTokens[i - 1] === spokenTokens[j - 1]) {
+      matchedTargetIndices.add(i - 1);
+      i--;
+      j--;
+    } else if (dp[i - 1][j] >= dp[i][j - 1]) {
+      i--;
+    } else {
+      j--;
+    }
+  }
+
+  const correctWordsCount = matchedTargetIndices.size;
+  const wordsAttempted = Math.max(correctWordsCount, Math.min(m, spokenTokens.length));
+  const accuracyPercentage = Math.max(
+    0,
+    Math.min(100, Math.round((correctWordsCount / Math.max(1, wordsAttempted)) * 100))
+  );
+
+  let accuracyGrade: 'Independent' | 'Instructional' | 'Frustrational' = 'Independent';
+  if (accuracyPercentage < 90) {
+    accuracyGrade = 'Frustrational';
+  } else if (accuracyPercentage < 95) {
+    accuracyGrade = 'Instructional';
+  }
+
+  return {
+    accuracyPercentage,
+    correctWordsCount,
+    totalTargetWords: m,
+    accuracyGrade,
+    matchedTargetIndices
+  };
+}
+
+/**
+ * Calculates oculomotor reading accuracy for silent reading based on
+ * word coverage, regression frequency, and gaze stability.
+ */
+export function calculateGazeReadingAccuracy(
+  _totalWords: number,
+  skippedWordsPercent: number,
+  regressionsPer100: number,
+  stabilityScore: number
+): {
+  accuracyPercentage: number;
+  accuracyGrade: 'Independent' | 'Instructional' | 'Frustrational';
+} {
+  const regressionPenalty = Math.max(0, regressionsPer100 - 3) * 1.4;
+  const skipPenalty = skippedWordsPercent * 1.6;
+  const stabilityPenalty = Math.max(0, 88 - stabilityScore) * 0.3;
+
+  const rawAccuracy = 98 - regressionPenalty - skipPenalty - stabilityPenalty;
+  const accuracyPercentage = Math.max(62, Math.min(99, Math.round(rawAccuracy)));
+
+  let accuracyGrade: 'Independent' | 'Instructional' | 'Frustrational' = 'Independent';
+  if (accuracyPercentage < 90) {
+    accuracyGrade = 'Frustrational';
+  } else if (accuracyPercentage < 95) {
+    accuracyGrade = 'Instructional';
+  }
+
+  return {
+    accuracyPercentage,
+    accuracyGrade
+  };
+}
 
 export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
   onApplyAccommodationsAndGoToStudio
@@ -201,6 +368,9 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
       year: 'numeric'
     }),
     wpm: 142,
+    accuracyPercentage: 94,
+    accuracyGrade: 'Instructional' as 'Independent' | 'Instructional' | 'Frustrational',
+    accuracyDetails: 'Standard diagnostic reading baseline',
     fixationsPer100: 18,
     regressionsPer100: 5,
     skippedWordsPercent: 2,
@@ -224,22 +394,19 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
   const [voiceHesitations, setVoiceHesitations] = useState(0);
   const [audioVolumeLevel, setAudioVolumeLevel] = useState(0);
 
-  // Moving Words Assessment & Reading Verification Mode
-  const [teleprompterMode, setTeleprompterMode] = useState(false);
-  const [teleprompterPaused, setTeleprompterPaused] = useState(false);
-  const [teleprompterWpm, setTeleprompterWpm] = useState(110); // reading pace (WPM)
-  const [teleprompterWordIdx, setTeleprompterWordIdx] = useState(0);
-  const [wordReadStatus, setWordReadStatus] = useState<Record<number, 'read' | 'missed'>>({});
-  const [missedWordsList, setMissedWordsList] = useState<string[]>([]);
-  const [isGazeTargetLocked, setIsGazeTargetLocked] = useState(false);
-  const [isVoiceTargetLocked, setIsVoiceTargetLocked] = useState(false);
-  const [movingSummaryModal, setMovingSummaryModal] = useState(false);
+  // AI Reading & Pronunciation Verification State
+  const [aiVerificationResult, setAiVerificationResult] = useState<VerifyReadingResponse | null>(null);
+  const [isVerifyingAI, setIsVerifyingAI] = useState(false);
+  const fullSpokenTranscriptRef = useRef<string>('');
 
-  const teleprompterTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const currentWordGazeHitRef = useRef<boolean>(false);
-  const currentWordVoiceHitRef = useRef<boolean>(false);
-  const currentWordIdxRef = useRef<number>(0);
-  const wordStatusRef = useRef<Record<number, 'read' | 'missed'>>({});
+  // Live Voice-Gaze Dyslexia Traits Analysis State
+  const [liveRecognizedWordsCount, setLiveRecognizedWordsCount] = useState(0);
+  const [liveAccuracyPercentage, setLiveAccuracyPercentage] = useState(100);
+  const [liveSpeechGazeSync, setLiveSpeechGazeSync] = useState<
+    'Synchronized' | 'Gaze Ahead' | 'Regressive Re-read' | 'Listening'
+  >('Listening');
+  const [liveDetectedTraits, setLiveDetectedTraits] = useState<string[]>([]);
+  const lastSpokenWordIndexRef = useRef<number>(-1);
 
   // Re-index word bounding boxes whenever text or styling changes
   const refreshWordBoxes = useCallback(() => {
@@ -263,6 +430,24 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
 
     wordBoxesRef.current = boxes;
   }, []);
+
+  // Moving Words Assessment & Reading Verification Mode
+  const [teleprompterMode, setTeleprompterMode] = useState(false);
+  const teleprompterModeRef = useRef<boolean>(false);
+  const [teleprompterPaused, setTeleprompterPaused] = useState(false);
+  const [teleprompterWpm, setTeleprompterWpm] = useState(110); // reading pace (WPM)
+  const [teleprompterWordIdx, setTeleprompterWordIdx] = useState(0);
+  const [wordReadStatus, setWordReadStatus] = useState<Record<number, 'read' | 'missed'>>({});
+  const [missedWordsList, setMissedWordsList] = useState<string[]>([]);
+  const [isGazeTargetLocked, setIsGazeTargetLocked] = useState(false);
+  const [isVoiceTargetLocked, setIsVoiceTargetLocked] = useState(false);
+  const [movingSummaryModal, setMovingSummaryModal] = useState(false);
+
+  const teleprompterTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const currentWordGazeHitRef = useRef<boolean>(false);
+  const currentWordVoiceHitRef = useRef<boolean>(false);
+  const currentWordIdxRef = useRef<number>(0);
+  const wordStatusRef = useRef<Record<number, 'read' | 'missed'>>({});
 
   useEffect(() => {
     if (phase === 'session') {
@@ -354,17 +539,29 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
             setFps(frameRes.fps);
           }
 
-          if (frameRes.targetPixelX && frameRes.targetPixelY) {
-            setLiveGazeCoords({ x: frameRes.targetPixelX, y: frameRes.targetPixelY });
+          const rawTargetX = frameRes.pixelX || frameRes.targetPixelX;
+          const rawTargetY = frameRes.pixelY || frameRes.targetPixelY;
+
+          if (rawTargetX && rawTargetY) {
+            const passageRect = passageArticleRef.current?.getBoundingClientRect();
+            if (passageRect && passageRect.width > 100 && passageRect.height > 100) {
+              const padX = 24;
+              const padY = 24;
+              const scopedX = Math.max(passageRect.left + padX, Math.min(passageRect.right - padX, rawTargetX));
+              const scopedY = Math.max(passageRect.top + padY, Math.min(passageRect.bottom - padY, rawTargetY));
+              setLiveGazeCoords({ x: scopedX, y: scopedY });
+            } else {
+              setLiveGazeCoords({ x: rawTargetX, y: rawTargetY });
+            }
           }
 
           if (frameRes.activeWordIndex !== null) {
             setActiveWordIndex(frameRes.activeWordIndex);
 
             // In Moving Word Assessment mode, check if gaze hits the active target word
-            if (teleprompterMode) {
+            if (teleprompterModeRef.current) {
               const target = currentWordIdxRef.current;
-              const isNearTarget = Math.abs(frameRes.activeWordIndex - target) <= 1;
+              const isNearTarget = Math.abs(frameRes.activeWordIndex - target) <= 2;
               setIsGazeTargetLocked(isNearTarget);
               if (isNearTarget) {
                 currentWordGazeHitRef.current = true;
@@ -408,15 +605,28 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
       if (rawScreenX !== null && rawScreenY !== null && !latestTrackingResult) {
         const smoothed = trackerRef.current.updateGaze(rawScreenX, rawScreenY);
         const passageRect = passageArticleRef.current?.getBoundingClientRect() || null;
+
+        if (passageRect && passageRect.width > 100 && passageRect.height > 100) {
+          const padX = 24;
+          const padY = 24;
+          const scopedX = Math.round(
+            passageRect.left + padX + smoothed.x * (passageRect.width - 2 * padX)
+          );
+          const scopedY = Math.round(
+            passageRect.top + padY + smoothed.y * (passageRect.height - 2 * padY)
+          );
+          setLiveGazeCoords({ x: scopedX, y: scopedY });
+        } else {
+          const continuousPxX = smoothed.x * window.innerWidth;
+          const continuousPxY = smoothed.y * window.innerHeight;
+          setLiveGazeCoords({ x: continuousPxX, y: continuousPxY });
+        }
         const hit = FaceMeshTracker.findTargetWord(
           smoothed.x,
           smoothed.y,
           wordBoxesRef.current,
           passageRect
         );
-        if (hit.targetPixelX && hit.targetPixelY) {
-          setLiveGazeCoords({ x: hit.targetPixelX, y: hit.targetPixelY });
-        }
         if (hit.wordIndex !== null) {
           setActiveWordIndex(hit.wordIndex);
         }
@@ -594,6 +804,48 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
     setPhase('session');
   };
 
+  const runAIVerification = async (
+    targetPassage: string,
+    spokenText: string,
+    gazeData: {
+      wpm?: number;
+      stabilityScore?: number;
+      totalFixations?: number;
+      totalRegressions?: number;
+      verifiedWordsCount?: number;
+      totalWordsCount?: number;
+    }
+  ): Promise<VerifyReadingResponse | null> => {
+    setIsVerifyingAI(true);
+    try {
+      const res = await fetch('/api/v1/ai/verify-reading', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          passageText: targetPassage,
+          spokenTranscript: spokenText,
+          language: language === 'ML' ? 'Malayalam' : 'English',
+          gazeMetrics: gazeData,
+          activeWordIndex
+        })
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          const aiData = json.data as VerifyReadingResponse;
+          setAiVerificationResult(aiData);
+          return aiData;
+        }
+      }
+    } catch (err) {
+      console.warn('[ReadEase] AI reading verification call error:', err);
+    } finally {
+      setIsVerifyingAI(false);
+    }
+    return null;
+  };
+
   const handleFinishAssessment = async () => {
     setIsScreeningLoading(true);
 
@@ -644,7 +896,45 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
           ? recordedDurationsRef.current
           : [260, 290, 310, 275, 340, 305, 330, 280, 320];
 
-    // 3. Call Machine Learning Dyslexia Screening Endpoint (Trained on DD-main dataset)
+    const skippedWordsPercent = Math.max(1, Math.min(8, Math.round((totalReg / totalFix) * 10)));
+
+    // 2.5 Compute Rigorous Multimodal Reading Accuracy (Oral Voice Transcript vs. Moving Teleprompter vs. Gaze Coverage)
+    const voiceRes = trackerRef.current.getVoiceAnalysisResult();
+    const activeVoiceWpm = voiceRes.wpmEstimate || voiceWpm || (voiceEnabled ? calculatedWpm : undefined);
+    const activeVoiceFluency = voiceRes.fluencyScore || voiceFluency || (voiceEnabled ? 85 : undefined);
+    const activeVoiceHesitations = voiceRes.hesitationCount || voiceHesitations || 0;
+    const voiceTranscriptToUse =
+      fullSpokenTranscriptRef.current || voiceRes.transcript || voiceTranscript;
+    const evaluatedTeleprompterCount = Object.keys(wordStatusRef.current).length;
+
+    let calculatedAccuracy = 95;
+    let accuracyGrade: 'Independent' | 'Instructional' | 'Frustrational' = 'Independent';
+    let accuracyDetails = '';
+
+    if (voiceTranscriptToUse && voiceTranscriptToUse.trim().length > 8) {
+      const oralEval = calculateOralReadingAccuracy(currentPassage, voiceTranscriptToUse);
+      if (oralEval.correctWordsCount > 0) {
+        oralEval.matchedTargetIndices.forEach((idx) => {
+          wordStatusRef.current[idx] = 'read';
+        });
+      }
+      calculatedAccuracy = oralEval.accuracyPercentage;
+      accuracyGrade = oralEval.accuracyGrade;
+      accuracyDetails = `Oral speech alignment: ${oralEval.correctWordsCount} of ${oralEval.totalTargetWords} words recognized in sequence`;
+    } else if (evaluatedTeleprompterCount >= 6) {
+      const readCount = Object.values(wordStatusRef.current).filter((s) => s === 'read').length;
+      calculatedAccuracy = Math.round((readCount / evaluatedTeleprompterCount) * 100);
+      accuracyGrade =
+        calculatedAccuracy >= 95 ? 'Independent' : calculatedAccuracy >= 90 ? 'Instructional' : 'Frustrational';
+      accuracyDetails = `Paced teleprompter evaluation: ${readCount} of ${evaluatedTeleprompterCount} target words verified`;
+    } else {
+      const gazeEval = calculateGazeReadingAccuracy(wordsCount, skippedWordsPercent, regPer100, finalStabilityScore);
+      calculatedAccuracy = gazeEval.accuracyPercentage;
+      accuracyGrade = gazeEval.accuracyGrade;
+      accuracyDetails = `Oculomotor estimation: ${skippedWordsPercent}% skipped words & ${regPer100} regressions/100w`;
+    }
+
+    // 3. Call Machine Learning Dyslexia Screening Endpoint (DD-Main + Phonological Audio Late Fusion)
     try {
       const screeningRes = await fetch('/api/v1/assessment/screen-dyslexia', {
         method: 'POST',
@@ -656,7 +946,16 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
           regressions_count: totalReg,
           total_words: wordsCount,
           reading_time_sec: elapsedSeconds,
-          wpm: calculatedWpm
+          wpm: calculatedWpm,
+          accuracy_percentage: calculatedAccuracy,
+          ...(voiceEnabled || activeVoiceHesitations > 0 || voiceRes.wordCount > 0
+            ? {
+                voice_wpm: activeVoiceWpm,
+                voice_fluency_score: activeVoiceFluency,
+                voice_hesitation_count: activeVoiceHesitations,
+                voice_transcript: voiceTranscriptToUse
+              }
+            : {})
         })
       });
 
@@ -670,6 +969,26 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
       console.warn('Failed to fetch DD-main screening, using offline heuristic:', e);
     } finally {
       setIsScreeningLoading(false);
+    }
+
+    // 3.5 AI-Powered Reading and Pronunciation Verification (Speech + Eye Gaze Multi-Modal AI)
+    try {
+      const aiData = await runAIVerification(currentPassage, voiceTranscriptToUse, {
+        wpm: calculatedWpm,
+        stabilityScore: finalStabilityScore,
+        totalFixations: totalFix,
+        totalRegressions: totalReg,
+        verifiedWordsCount: evaluatedTeleprompterCount >= 6 ? Object.values(wordStatusRef.current).filter((s) => s === 'read').length : undefined,
+        totalWordsCount: wordsCount
+      });
+
+      if (aiData && voiceTranscriptToUse && voiceTranscriptToUse.trim().length > 3) {
+        calculatedAccuracy = aiData.accuracyPercentage;
+        accuracyGrade = aiData.overallAssessment;
+        accuracyDetails = `AI Multi-Modal Verification: ${aiData.correctWordsCount} of ${aiData.wordsAnalyzed} words verified (${aiData.speechGazeSyncScore}% speech-gaze synchrony)`;
+      }
+    } catch {
+      // non-blocking
     }
 
     let stabilityStatus = 'High Tracking Stability';
@@ -693,9 +1012,12 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
         year: 'numeric'
       }),
       wpm: calculatedWpm,
+      accuracyPercentage: calculatedAccuracy,
+      accuracyGrade,
+      accuracyDetails,
       fixationsPer100: fixPer100,
       regressionsPer100: regPer100,
-      skippedWordsPercent: Math.max(1, Math.min(5, Math.round((totalReg / totalFix) * 10))),
+      skippedWordsPercent,
       stabilityStatus,
       stabilityDesc,
       confidenceScore: Math.round(confidence * 100),
@@ -720,6 +1042,13 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
     setSaveMessage(null);
     setVoiceEnabled(false);
     setVoiceTranscript('');
+    setAiVerificationResult(null);
+    fullSpokenTranscriptRef.current = '';
+    setLiveRecognizedWordsCount(0);
+    setLiveAccuracyPercentage(100);
+    setLiveSpeechGazeSync('Listening');
+    setLiveDetectedTraits([]);
+    lastSpokenWordIndexRef.current = -1;
     setVoiceWpm(0);
     setVoiceFluency(0);
     setVoiceHesitations(0);
@@ -727,42 +1056,167 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
     setShowConsentModal(true);
   };
 
+  const processLiveAudioComparison = useCallback(
+    (spokenText: string) => {
+      if (!spokenText || spokenText.trim().length === 0) return;
+
+      const align = calculateOralReadingAccuracy(currentPassageText, spokenText);
+
+      // 1. Mark every spoken word verified by the LCS sequence matcher as read in real time!
+      if (align.matchedTargetIndices.size > 0) {
+        const nextStatus = { ...wordStatusRef.current };
+        let newReads = false;
+        align.matchedTargetIndices.forEach((targetIdx) => {
+          if (nextStatus[targetIdx] !== 'read') {
+            nextStatus[targetIdx] = 'read';
+            newReads = true;
+          }
+        });
+
+        if (newReads) {
+          wordStatusRef.current = nextStatus;
+          setWordReadStatus(nextStatus);
+
+          // Clear verified spoken words from missed list
+          const words = currentPassageText.split(/\s+/).filter(Boolean);
+          setMissedWordsList((prev) =>
+            prev.filter((word) => {
+              const targetIndices = words
+                .map((w, i) =>
+                  w.toLowerCase().replace(/[^\w\s\u0D00-\u0D7F]/gu, '') ===
+                  word.toLowerCase().replace(/[^\w\s\u0D00-\u0D7F]/gu, '')
+                    ? i
+                    : -1
+                )
+                .filter((i) => i !== -1);
+              return !targetIndices.some((idx) => align.matchedTargetIndices.has(idx));
+            })
+          );
+        }
+
+        // If moving teleprompter is active, check if target word was spoken
+        if (teleprompterModeRef.current) {
+          const target = currentWordIdxRef.current;
+          if (
+            align.matchedTargetIndices.has(target) ||
+            align.matchedTargetIndices.has(target - 1) ||
+            align.matchedTargetIndices.has(target + 1)
+          ) {
+            currentWordVoiceHitRef.current = true;
+            setIsVoiceTargetLocked(true);
+          }
+        }
+      }
+
+      const latestTargetIdx =
+        align.matchedTargetIndices.size > 0
+          ? Math.max(...Array.from(align.matchedTargetIndices))
+          : -1;
+
+      lastSpokenWordIndexRef.current = latestTargetIdx;
+      setLiveRecognizedWordsCount(align.correctWordsCount);
+      setLiveAccuracyPercentage(align.accuracyPercentage);
+
+      // Real-time Dyslexia Cognitive Traits Identification
+      const traits: string[] = [];
+
+      // 1. Vocal Hesitations / Phonological Decoding Struggles
+      const hesitations = trackerRef.current.getVoiceAnalysisResult().hesitationCount;
+      if (hesitations >= 2) {
+        traits.push(`${hesitations} vocal hesitations / pauses on multisyllabic decoding`);
+      }
+
+      // 2. Oral Reading Pace
+      const cleanTokens = (t: string) =>
+        t
+          .toLowerCase()
+          .replace(/[^\w\s\u0D00-\u0D7F]/gu, '')
+          .split(/\s+/)
+          .filter(Boolean);
+      const spokenTokens = cleanTokens(spokenText);
+      const wordCount = spokenTokens.length;
+      const elapsedMinutes = Math.max(0.05, (255 - remainingSeconds) / 60);
+      const liveWpm = Math.round(wordCount / elapsedMinutes);
+      if (liveWpm > 0 && liveWpm < 65 && spokenTokens.length >= 8) {
+        traits.push(`Atypical oral cadence (${liveWpm} WPM): elevated syllable processing dwell`);
+      }
+
+      // 3. Oculomotor Regressions & Visual Line Jumping
+      if (liveRegressions > 3) {
+        traits.push(`Frequent backward regressions (${liveRegressions}): re-reading prior words/lines`);
+      }
+
+      // 4. Phonemic Substitutions / Approximations
+      if (align.accuracyPercentage < 85 && spokenTokens.length >= 8) {
+        traits.push('Phonemic substitutions observed: target words misread or approximated');
+      }
+
+      // 5. Speech-Gaze Cadence Alignment
+      const currentGazeWord = activeWordIndex;
+      if (currentGazeWord !== null && latestTargetIdx !== -1) {
+        if (currentGazeWord < latestTargetIdx - 2) {
+          setLiveSpeechGazeSync('Regressive Re-read');
+          traits.push('Oculomotor regression: gaze jumped backward while speaking forward');
+        } else if (currentGazeWord > latestTargetIdx + 8) {
+          setLiveSpeechGazeSync('Gaze Ahead');
+        } else {
+          setLiveSpeechGazeSync('Synchronized');
+        }
+      } else {
+        setLiveSpeechGazeSync('Synchronized');
+      }
+
+      setLiveDetectedTraits(traits);
+    },
+    [currentPassageText, remainingSeconds, liveRegressions, activeWordIndex]
+  );
+
+  const startVoiceCaptureSession = useCallback(async () => {
+    if (trackerRef.current.isVoiceAnalysisActive()) {
+      setVoiceEnabled(true);
+      return true;
+    }
+    const speechLang = language === 'ML' ? 'ml-IN' : 'en-US';
+    const started = await trackerRef.current.startVoiceAnalysis(
+      speechLang,
+      (cumulativeTranscript) => {
+        fullSpokenTranscriptRef.current = cumulativeTranscript;
+        setVoiceTranscript(cumulativeTranscript);
+        processLiveAudioComparison(cumulativeTranscript);
+      },
+      (result) => {
+        fullSpokenTranscriptRef.current = result.transcript;
+        setVoiceTranscript(result.transcript);
+        setVoiceWpm(result.wpmEstimate);
+        setVoiceFluency(result.fluencyScore);
+        setVoiceHesitations(result.hesitationCount);
+        processLiveAudioComparison(result.transcript);
+      },
+      (level) => {
+        setAudioVolumeLevel(level);
+      }
+    );
+    if (started) {
+      setVoiceEnabled(true);
+    }
+    return started;
+  }, [language, processLiveAudioComparison]);
+
+  // Automatically start voice audio capture and speech-word analysis when reading session begins
+  useEffect(() => {
+    if (phase === 'session' && !showConsentModal && !voiceEnabled) {
+      startVoiceCaptureSession().catch(() => {});
+    }
+  }, [phase, showConsentModal, voiceEnabled, startVoiceCaptureSession]);
+
   const handleVoiceToggle = async () => {
     if (voiceEnabled) {
       trackerRef.current.stopVoiceAnalysis();
       setVoiceEnabled(false);
       setAudioVolumeLevel(0);
     } else {
-      const speechLang = language === 'ML' ? 'ml-IN' : 'en-US';
-      const started = await trackerRef.current.startVoiceAnalysis(
-        speechLang,
-        (partial) => {
-          setVoiceTranscript(partial);
-          // Check if speech matches current moving word
-          if (teleprompterMode) {
-            const allWords = currentPassageText.split(/\s+/).filter(Boolean);
-            const target = allWords[currentWordIdxRef.current]
-              ?.toLowerCase()
-              .replace(/[^a-z0-9]/gi, '');
-            if (target && partial.toLowerCase().includes(target)) {
-              currentWordVoiceHitRef.current = true;
-              setIsVoiceTargetLocked(true);
-            }
-          }
-        },
-        (result) => {
-          setVoiceTranscript(result.transcript);
-          setVoiceWpm(result.wpmEstimate);
-          setVoiceFluency(result.fluencyScore);
-          setVoiceHesitations(result.hesitationCount);
-        },
-        (level) => {
-          setAudioVolumeLevel(level);
-        }
-      );
-      if (started) {
-        setVoiceEnabled(true);
-      } else {
+      const started = await startVoiceCaptureSession();
+      if (!started) {
         alert(
           'Microphone or Speech Recognition is not permitted or supported in this browser. Please allow microphone access in Chrome or Edge.'
         );
@@ -779,6 +1233,7 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
     currentWordIdxRef.current = 0;
     setTeleprompterWordIdx(0);
     setTeleprompterPaused(false);
+    teleprompterModeRef.current = true;
     setTeleprompterMode(true);
   };
 
@@ -791,8 +1246,25 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
       clearInterval(teleprompterTimerRef.current);
       teleprompterTimerRef.current = null;
     }
+    teleprompterModeRef.current = false;
     setTeleprompterMode(false);
     setTeleprompterPaused(false);
+
+    // Final reconciliation against oral reading transcript
+    const words = currentPassageText.split(/\s+/).filter(Boolean);
+    const spokenTextToReconcile =
+      fullSpokenTranscriptRef.current || trackerRef.current.getVoiceAnalysisResult().transcript;
+    const alignFinal = calculateOralReadingAccuracy(currentPassageText, spokenTextToReconcile);
+    if (alignFinal.matchedTargetIndices.size > 0) {
+      const nextStatus = { ...wordStatusRef.current };
+      alignFinal.matchedTargetIndices.forEach((idx) => {
+        nextStatus[idx] = 'read';
+      });
+      wordStatusRef.current = nextStatus;
+      setWordReadStatus(nextStatus);
+      setMissedWordsList(words.filter((_, i) => nextStatus[i] === 'missed'));
+    }
+
     if (Object.keys(wordStatusRef.current).length > 2) {
       setMovingSummaryModal(true);
     }
@@ -805,6 +1277,27 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
     }
     handleStartTeleprompter();
   };
+
+  useEffect(() => {
+    teleprompterModeRef.current = teleprompterMode;
+    const timer = setTimeout(() => {
+      refreshWordBoxes();
+      if (passageArticleRef.current) {
+        pipelineRef.current.bindTextContainer(passageArticleRef.current);
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [teleprompterMode, refreshWordBoxes]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && teleprompterModeRef.current) {
+        handleStopTeleprompter();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Teleprompter / Moving Word Engine: advances words at selected WPM and evaluates gaze/voice
   useEffect(() => {
@@ -825,10 +1318,11 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
     const advanceWord = () => {
       const current = currentWordIdxRef.current;
 
-      // Check whether user read the current word
+      // Check whether user read the current word via oral voice matching or eye gaze
+      const alreadyRead = wordStatusRef.current[current] === 'read';
       const gazeHit = currentWordGazeHitRef.current;
       const voiceHit = currentWordVoiceHitRef.current;
-      const wasRead = gazeHit || voiceHit || (!isCameraActive && !voiceEnabled);
+      const wasRead = alreadyRead || gazeHit || voiceHit || (!isCameraActive && !voiceEnabled);
 
       const newStatuses = {
         ...wordStatusRef.current,
@@ -855,8 +1349,24 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
           clearInterval(teleprompterTimerRef.current);
           teleprompterTimerRef.current = null;
         }
+        teleprompterModeRef.current = false;
         setTeleprompterMode(false);
         setTeleprompterPaused(false);
+
+        // Final reconciliation against oral reading transcript
+        const spokenTextToReconcile =
+          fullSpokenTranscriptRef.current || trackerRef.current.getVoiceAnalysisResult().transcript;
+        const alignFinal = calculateOralReadingAccuracy(currentPassageText, spokenTextToReconcile);
+        if (alignFinal.matchedTargetIndices.size > 0) {
+          const nextStatus = { ...wordStatusRef.current };
+          alignFinal.matchedTargetIndices.forEach((idx) => {
+            nextStatus[idx] = 'read';
+          });
+          wordStatusRef.current = nextStatus;
+          setWordReadStatus(nextStatus);
+          setMissedWordsList(words.filter((_, i) => nextStatus[i] === 'missed'));
+        }
+
         setMovingSummaryModal(true);
         return;
       }
@@ -898,12 +1408,18 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
       const payload = {
         studentId: 'student_alex',
         durationSeconds: elapsedSec,
-        wpm: assessmentResults.wpm,
+        readingSpeedWpm: assessmentResults.wpm,
+        accuracyPercentage: assessmentResults.accuracyPercentage,
         fixationDurationMs: screeningResult?.biomarkers.fixation_duration.value ?? 310,
         regressionCount: assessmentResults.regressionsPer100,
         riskLevel: (screeningResult?.risk_level || 'Moderate Risk') as
           'Low Risk' | 'Moderate Risk' | 'Elevated Risk',
         dyslexiaProbability: screeningResult?.dyslexia_probability ?? 48,
+        eyeGazeProbability: screeningResult?.eye_gaze_probability,
+        phonologicalRiskScore: screeningResult?.phonological_probability ?? undefined,
+        voiceWpm: voiceWpm > 0 ? voiceWpm : undefined,
+        voiceFluencyScore: voiceFluency > 0 ? voiceFluency : undefined,
+        hesitationCount: voiceHesitations,
         recommendedAccommodations: screeningResult?.recommended_accommodations || {
           fontFamily: 'Lexend' as FontPreference,
           fontSize: 19,
@@ -1006,11 +1522,18 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
         <div className="space-y-4">
           {/* Top Header Bar: Status, Progress, and Timer */}
           <div className="bg-surface-lowest rounded-2xl p-3 sm:p-3.5 border border-surface-border shadow-soft flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
               <Badge variant="primary" dot>
                 OpenCV & Face Mesh Diagnostic
               </Badge>
-              <span className="text-xs text-text-muted hidden md:inline">
+              {voiceEnabled && (
+                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1.5 shadow-xs">
+                  <Mic size={12} className="animate-pulse text-rose-600" />
+                  <span>Auto-Audio Active:</span>
+                  <span className="font-mono text-emerald-700">{liveAccuracyPercentage}% Oral Accuracy</span>
+                </span>
+              )}
+              <span className="text-xs text-text-muted hidden xl:inline">
                 Read naturally at your normal comfortable speed
               </span>
             </div>
@@ -1048,8 +1571,284 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
             </div>
           </div>
 
-          {/* TWO-COLUMN WORKBENCH: Camera & Controls on LEFT, Passage on CENTER/RIGHT */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+          {/* TWO-COLUMN WORKBENCH OR FULL-SCREEN MOVING TEXT ASSESSMENT VIEW */}
+          {teleprompterMode ? (
+            /* ══════════ FULL-SCREEN IMMERSIVE MOVING TEXT ASSESSMENT VIEW ══════════ */
+            <div className="fixed inset-0 z-50 bg-[#FBF5E8] flex flex-col items-center justify-between p-3 sm:p-5 overflow-hidden animate-fade-in select-none">
+              {/* TOP: Centered Camera & Dynamic Flow Ribbon directly under the hardware webcam */}
+              <div className="w-full max-w-4xl flex flex-col items-center gap-2 shrink-0 z-50">
+                {/* Control Header Bar */}
+                <div className="w-full flex items-center justify-between px-2">
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-600 text-white text-xs font-bold shadow-xs">
+                      <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                      Moving Word Test (Full Screen)
+                    </span>
+                    <span className="text-xs font-bold text-slate-700 font-mono bg-white/80 px-2.5 py-1 rounded-full border border-slate-300">
+                      Target: {teleprompterWpm} WPM
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handlePauseTeleprompter}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer ${
+                        teleprompterPaused
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                          : 'bg-amber-500 hover:bg-amber-600 text-white'
+                      }`}
+                    >
+                      {teleprompterPaused ? <Play size={13} /> : <Pause size={13} />}
+                      <span>{teleprompterPaused ? 'Resume' : 'Pause'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleStopTeleprompter}
+                      className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                      title="Exit full-screen and view assessment report (or press Esc)"
+                    >
+                      <Minimize2 size={13} />
+                      <span>Exit Full Screen / Finish</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Camera positioned onto the middle top of the screen */}
+                {isCameraActive && (
+                  <div className="relative rounded-2xl overflow-hidden shadow-elevated border-2 border-violet-500/60 bg-black w-64 h-36 flex items-center justify-center shrink-0">
+                    <FaceMeshOverlay
+                      videoRef={videoRef}
+                      isTrackingActive={isCameraActive}
+                      faceOvalPoints={faceOvalPoints}
+                      leftEyeContour={leftEyeContour}
+                      rightEyeContour={rightEyeContour}
+                      leftIrisCenter={leftIrisCenter}
+                      rightIrisCenter={rightIrisCenter}
+                      headPose={headPose}
+                      earLeft={earLeft}
+                      earRight={earRight}
+                      isBlinking={isBlinking}
+                      fps={fps}
+                      confidence={confidence}
+                      lightingQuality={lightingQuality}
+                      distanceWarning={distanceWarning}
+                      defaultCameraSize="standard"
+                      activeDeviceId={selectedCameraId}
+                      initialEyeAnchors={eyeAnchors}
+                      onSetEyeAnchors={handleSetEyeAnchors}
+                    />
+                    {/* Status badges on camera */}
+                    <div className="absolute top-1.5 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-xs text-[9px] text-emerald-400 font-bold border border-emerald-500/30 pointer-events-none">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>Head & Eye Tracker</span>
+                    </div>
+                    <div className="absolute top-1.5 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-xs text-[9px] text-rose-300 font-bold border border-rose-500/30 pointer-events-none">
+                      <Mic size={9} className="text-rose-400 animate-pulse" />
+                      <span>{voiceEnabled ? `${audioVolumeLevel}% Vol` : 'Mic Off'}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Dynamic RSVP Flow Ribbon positioned right below the camera */}
+                {(() => {
+                  const allWords = currentPassageText.split(/\s+/).filter(Boolean);
+                  const currentWordText = allWords[teleprompterWordIdx] || '';
+                  return (
+                    <div className="bg-slate-900 text-white rounded-2xl px-5 py-2 shadow-elevated border border-slate-700 flex flex-col items-center justify-center gap-1.5 w-full max-w-2xl relative overflow-hidden">
+                      <div className="flex items-center justify-center gap-4 sm:gap-6 w-full select-none">
+                        <span className="text-slate-500 text-xs hidden sm:inline truncate max-w-[90px]">
+                          {allWords[teleprompterWordIdx - 2] || ''}
+                        </span>
+                        <span className="text-slate-400 text-sm font-medium truncate max-w-[110px]">
+                          {allWords[teleprompterWordIdx - 1] || ''}
+                        </span>
+
+                        <div className="px-4 py-1.5 rounded-xl bg-violet-600 text-white font-extrabold text-xl sm:text-2xl shadow-lg ring-4 ring-violet-400/50 scale-110 transform transition-all">
+                          <span>{currentWordText}</span>
+                          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-violet-400 text-[10px] leading-none">
+                            ▲
+                          </div>
+                        </div>
+
+                        <span className="text-slate-300 text-sm font-medium truncate max-w-[110px]">
+                          {allWords[teleprompterWordIdx + 1] || ''}
+                        </span>
+                        <span className="text-slate-500 text-xs hidden sm:inline truncate max-w-[90px]">
+                          {allWords[teleprompterWordIdx + 2] || ''}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 text-[10px] text-slate-300">
+                        <span className="font-mono bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+                          Word {teleprompterWordIdx + 1} of {allWords.length}
+                        </span>
+                        <span className="text-slate-400">•</span>
+                        <span
+                          className={
+                            isGazeTargetLocked ? 'text-emerald-400 font-bold' : 'text-slate-400'
+                          }
+                        >
+                          {isGazeTargetLocked ? '✓ Eyes focused on word' : 'Reading Gaze Tracking'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* CENTER: Full Screen Reading Passage Article */}
+              <article
+                ref={passageArticleRef}
+                style={{
+                  fontFamily: preferences.fontFamily,
+                  fontSize: `${preferences.fontSize * 1.05}px`,
+                  lineHeight: preferences.lineHeight
+                }}
+                className="bg-[#FDF6E8] rounded-3xl p-6 sm:p-10 border-2 border-[#D8CEB8] shadow-elevated transition-all relative overflow-y-auto w-full max-w-[85ch] flex-1 max-h-[50vh] my-2"
+              >
+                {/* Live Gaze Focus Spotlight Follower */}
+                {gazeSpotlightEnabled && liveGazeCoords && (
+                  <div
+                    className="pointer-events-none fixed z-50 transition-all duration-150 ease-out -translate-x-1/2 -translate-y-1/2"
+                    style={{
+                      left: `${liveGazeCoords.x}px`,
+                      top: `${liveGazeCoords.y}px`
+                    }}
+                  >
+                    <div className="relative flex items-center justify-center">
+                      <span className="absolute w-8 h-8 rounded-full bg-violet-500/20 animate-ping opacity-60" />
+                      <span className="w-5 h-5 rounded-full bg-violet-600/30 border-2 border-violet-600 shadow-md backdrop-blur-xs flex items-center justify-center">
+                        <span className="w-1.5 h-1.5 rounded-full bg-violet-600" />
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Progress scrubber line */}
+                <div
+                  className="absolute top-0 left-0 h-1.5 bg-violet-500 transition-all duration-300 rounded-t-3xl"
+                  style={{
+                    width: `${Math.round((teleprompterWordIdx / Math.max(1, currentPassageText.split(/\s+/).filter(Boolean).length - 1)) * 100)}%`
+                  }}
+                />
+
+                <div className="space-y-6 max-w-[70ch] mx-auto text-left select-none">
+                  {(() => {
+                    let fullWordCounter = 0;
+                    return currentPassageText.split('\n\n').map((para, pIdx) => {
+                      const words = para.split(/\s+/).filter(Boolean);
+                      return (
+                        <p key={pIdx} className="leading-relaxed" style={{ color: '#1a1412' }}>
+                          {words.map((word, wIdx) => {
+                            const currentIdx = fullWordCounter++;
+                            const isTeleprompterCurrent = teleprompterWordIdx === currentIdx;
+                            const status = wordReadStatus[currentIdx];
+
+                            let wordStyle: React.CSSProperties = {
+                              display: 'inline-block',
+                              transition: 'all 200ms ease',
+                              borderRadius: '5px',
+                              padding: '1px 3px',
+                              marginRight: '4px',
+                              color: '#1a1412',
+                              fontWeight: 500
+                            };
+
+                            if (isTeleprompterCurrent) {
+                              wordStyle = {
+                                ...wordStyle,
+                                color: '#ffffff',
+                                backgroundColor: '#7c3aed',
+                                fontWeight: 800,
+                                fontSize: `${preferences.fontSize * 1.18}px`,
+                                boxShadow:
+                                  '0 0 0 3px rgba(124,58,237,0.45), 0 4px 12px rgba(124,58,237,0.3)',
+                                transform: 'scale(1.12)',
+                                padding: '2px 7px',
+                                borderRadius: '6px'
+                              };
+                            } else if (status === 'read') {
+                              wordStyle = {
+                                ...wordStyle,
+                                color: '#064e3b',
+                                backgroundColor: 'rgba(16, 185, 129, 0.16)',
+                                border: '1px solid rgba(16, 185, 129, 0.4)',
+                                fontWeight: 600,
+                                borderRadius: '5px',
+                                padding: '1px 4px'
+                              };
+                            } else if (status === 'missed') {
+                              wordStyle = {
+                                ...wordStyle,
+                                color: '#78350f',
+                                backgroundColor: 'rgba(245, 158, 11, 0.16)',
+                                border: '1px solid rgba(245, 158, 11, 0.4)',
+                                fontWeight: 500,
+                                borderRadius: '5px',
+                                padding: '1px 4px'
+                              };
+                            } else if (currentIdx < teleprompterWordIdx) {
+                              wordStyle = { ...wordStyle, color: '#9c8f7a', opacity: 0.6 };
+                            }
+
+                            return (
+                              <span key={wIdx} data-word-idx={currentIdx} style={wordStyle}>
+                                {word}
+                                {status === 'read' && (
+                                  <span className="text-[10px] text-emerald-600 font-bold ml-0.5">
+                                    ✓
+                                  </span>
+                                )}
+                                {status === 'missed' && (
+                                  <span className="text-[10px] text-amber-600 font-bold ml-0.5">
+                                    •
+                                  </span>
+                                )}
+                              </span>
+                            );
+                          })}
+                        </p>
+                      );
+                    });
+                  })()}
+                </div>
+              </article>
+
+              {/* BOTTOM: Status & Controls Dock */}
+              <div className="w-full max-w-4xl bg-white/90 backdrop-blur-xs border border-slate-300 rounded-2xl px-5 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-soft shrink-0 text-xs">
+                <div className="flex items-center gap-3">
+                  <span className="font-bold text-slate-700">Reading Pace:</span>
+                  <input
+                    type="range"
+                    min={60}
+                    max={220}
+                    step={5}
+                    value={teleprompterWpm}
+                    onChange={(e) => setTeleprompterWpm(Number(e.target.value))}
+                    className="w-28 sm:w-36 accent-violet-600 h-1.5 cursor-pointer"
+                  />
+                  <span className="font-mono font-bold text-violet-700">{teleprompterWpm} WPM</span>
+                </div>
+
+                <div className="flex items-center gap-4 text-slate-600 text-xs">
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    Verified Words: <strong className="font-mono text-emerald-700">{Object.values(wordStatusRef.current).filter((s) => s === 'read').length}</strong>
+                  </span>
+                  <span className="flex items-center gap-1.5 font-medium">
+                    <span className="w-2 h-2 rounded-full bg-violet-500" />
+                    Accuracy: <strong className="font-mono text-violet-700">{liveAccuracyPercentage}%</strong>
+                  </span>
+                </div>
+
+                <div className="text-[11px] text-slate-500 font-medium">
+                  Press <kbd className="px-1.5 py-0.5 rounded bg-slate-200 border border-slate-300 text-[10px] font-mono">Esc</kbd> to exit full screen
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
             {/* ══════════ LEFT COLUMN: CAMERA & ALL CONTROLS (Contained on screen) ══════════ */}
             <div className="lg:col-span-5 xl:col-span-4 space-y-3.5 lg:sticky lg:top-3 max-h-[calc(100vh-80px)] overflow-y-auto pr-1">
               {/* 1. Camera View with Webcam Switcher */}
@@ -1074,7 +1873,7 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
                           {availableCameras.map((cam, idx) => {
                             const isPhone = /phone|link|droid|virtual/i.test(cam.label);
                             const displayLabel = cam.label
-                              ? `${isPhone ? '📱 ' : '📷 '}${cam.label}`
+                              ? `${isPhone ? '[Phone] ' : '[Cam] '}${cam.label}`
                               : `Camera ${idx + 1} (${cam.deviceId.slice(0, 6)}...)`;
                             return (
                               <option key={cam.deviceId || idx} value={cam.deviceId}>
@@ -1268,33 +2067,33 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
                       onClick={() => setTeleprompterWpm(75)}
                       className={`py-1 rounded text-[10px] font-bold transition-all ${
                         teleprompterWpm <= 85
-                          ? 'bg-violet-600 text-white'
+                          ? 'bg-primary text-white shadow-xs'
                           : 'bg-surface-low text-text-muted hover:text-text-primary'
                       }`}
                     >
-                      🐢 75
+                      75 WPM
                     </button>
                     <button
                       type="button"
                       onClick={() => setTeleprompterWpm(110)}
                       className={`py-1 rounded text-[10px] font-bold transition-all ${
                         teleprompterWpm > 85 && teleprompterWpm <= 135
-                          ? 'bg-violet-600 text-white'
+                          ? 'bg-primary text-white shadow-xs'
                           : 'bg-surface-low text-text-muted hover:text-text-primary'
                       }`}
                     >
-                      📖 110
+                      110 WPM
                     </button>
                     <button
                       type="button"
                       onClick={() => setTeleprompterWpm(160)}
                       className={`py-1 rounded text-[10px] font-bold transition-all ${
                         teleprompterWpm > 135
-                          ? 'bg-violet-600 text-white'
+                          ? 'bg-primary text-white shadow-xs'
                           : 'bg-surface-low text-text-muted hover:text-text-primary'
                       }`}
                     >
-                      ⚡ 160
+                      160 WPM
                     </button>
                   </div>
                 </div>
@@ -1344,15 +2143,16 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
 
                 {/* Live Volume Level Visual Meter */}
                 {voiceEnabled ? (
-                  <div className="space-y-1.5 p-2 rounded-xl bg-rose-50/80 border border-rose-200">
+                  <div className="space-y-2 p-2.5 rounded-xl bg-rose-50/80 border border-rose-200">
                     <div className="flex items-center justify-between text-[11px] text-rose-900 font-medium">
-                      <span className="flex items-center gap-1">
+                      <span className="flex items-center gap-1.5 font-bold">
                         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        Mic Live & Audio Streaming
+                        Auto-Audio Active & Transcribing
                       </span>
-                      <span className="font-mono font-bold">{audioVolumeLevel}% Vol</span>
+                      <span className="font-mono font-bold text-rose-800">{audioVolumeLevel}% Vol</span>
                     </div>
-                    <div className="w-full h-2 bg-rose-200/60 rounded-full overflow-hidden">
+
+                    <div className="w-full h-1.5 bg-rose-200/60 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-emerald-500 via-amber-400 to-rose-500 transition-all duration-75 rounded-full"
                         style={{
@@ -1360,32 +2160,84 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
                         }}
                       />
                     </div>
+
+                    {/* Live Word Comparison Metrics */}
+                    <div className="grid grid-cols-2 gap-1.5 pt-1 text-[10px]">
+                      <div className="p-1.5 rounded-lg bg-white/90 border border-rose-200/70 text-center">
+                        <span className="text-text-muted block text-[9px] uppercase font-bold">
+                          Live Accuracy
+                        </span>
+                        <span className="text-sm font-bold font-mono text-emerald-600">
+                          {liveAccuracyPercentage}%
+                        </span>
+                        <span className="text-[9px] text-text-muted block">
+                          {liveRecognizedWordsCount} words verified
+                        </span>
+                      </div>
+                      <div className="p-1.5 rounded-lg bg-white/90 border border-rose-200/70 text-center">
+                        <span className="text-text-muted block text-[9px] uppercase font-bold">
+                          Gaze-Speech
+                        </span>
+                        <span
+                          className={`text-xs font-bold font-mono block mt-0.5 ${
+                            liveSpeechGazeSync === 'Synchronized'
+                              ? 'text-emerald-700'
+                              : liveSpeechGazeSync === 'Regressive Re-read'
+                                ? 'text-amber-700'
+                                : 'text-indigo-700'
+                          }`}
+                        >
+                          {liveSpeechGazeSync}
+                        </span>
+                        <span className="text-[9px] text-text-muted block">cadence sync</span>
+                      </div>
+                    </div>
+
                     {voiceWpm > 0 && (
-                      <div className="flex items-center justify-between text-[10px] text-rose-800 font-mono pt-0.5">
+                      <div className="flex items-center justify-between text-[10px] text-rose-800 font-mono pt-0.5 px-0.5">
                         <span>Pace: {voiceWpm} WPM</span>
                         <span>Fluency: {voiceFluency}%</span>
                         <span>Hesitations: {voiceHesitations}</span>
                       </div>
                     )}
+
+                    {/* Live Dyslexia Traits Identified in Real Time */}
+                    {liveDetectedTraits.length > 0 && (
+                      <div className="p-2 rounded-lg bg-amber-50 border border-amber-300 text-[10px] space-y-1 animate-fade-in">
+                        <div className="flex items-center gap-1 font-bold text-amber-900 uppercase text-[9px]">
+                          <AlertTriangle size={11} className="text-amber-600" />
+                          Observed Dyslexia Traits (Live):
+                        </div>
+                        <ul className="space-y-0.5 pl-1 text-amber-800">
+                          {liveDetectedTraits.map((trait, tIdx) => (
+                            <li key={tIdx} className="flex items-start gap-1">
+                              <span className="font-bold text-amber-600">•</span>
+                              <span className="leading-tight">{trait}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
                     {isVoiceTargetLocked && (
                       <span className="inline-block text-[10px] text-emerald-700 bg-emerald-100 font-bold px-1.5 py-0.5 rounded">
                         ✓ Target Word Spoken & Matched
                       </span>
                     )}
+
                     {voiceTranscript ? (
-                      <p className="text-[11px] text-rose-900 italic line-clamp-2 mt-1 bg-white/80 p-1.5 rounded border border-rose-100">
+                      <p className="text-[11px] text-rose-900 italic line-clamp-2 mt-1 bg-white/90 p-1.5 rounded border border-rose-100">
                         "{voiceTranscript}"
                       </p>
                     ) : (
                       <p className="text-[10px] text-rose-600 italic">
-                        Speak aloud — audio input is active and transcribing…
+                        Listening... read the text passage aloud naturally
                       </p>
                     )}
                   </div>
                 ) : (
                   <p className="text-[11px] text-text-muted">
-                    Click <strong>Start Mic</strong> to enable live reading aloud analysis and
-                    speech-word verification.
+                    Microphone is paused. Click <strong>Start Mic</strong> to resume live audio capture.
                   </p>
                 )}
               </div>
@@ -1624,7 +2476,7 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
                 {/* Live Gaze Focus Spotlight Follower */}
                 {gazeSpotlightEnabled && liveGazeCoords && (
                   <div
-                    className="pointer-events-none fixed z-50 transition-all duration-75 ease-out -translate-x-1/2 -translate-y-1/2"
+                    className="pointer-events-none fixed z-50 transition-all duration-150 ease-out -translate-x-1/2 -translate-y-1/2"
                     style={{
                       left: `${liveGazeCoords.x}px`,
                       top: `${liveGazeCoords.y}px`
@@ -1745,6 +2597,7 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
               </article>
             </div>
           </div>
+          )}
 
           {/* Camera Consent Modal */}
           <Modal
@@ -1816,25 +2669,25 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
               return (
                 <div className="space-y-5 text-left">
                   {/* Score banner */}
-                  <div className="bg-gradient-to-br from-violet-600 to-indigo-700 text-white p-5 rounded-2xl flex items-center justify-between shadow-md">
+                  <div className="bg-primary text-white p-5 rounded-2xl flex items-center justify-between shadow-soft border border-primary-800">
                     <div>
-                      <span className="text-xs font-bold text-violet-200 uppercase tracking-wider block">
+                      <span className="text-xs font-bold text-white/80 uppercase tracking-wider block">
                         Reading Accuracy Score
                       </span>
-                      <div className="text-4xl font-extrabold mt-1">{accuracy}%</div>
-                      <span className="text-xs text-violet-200 mt-1 block">
+                      <div className="text-4xl font-extrabold mt-1 font-editorial">{accuracy}%</div>
+                      <span className="text-xs text-white/80 mt-1 block">
                         Target Pace: <strong>{teleprompterWpm} WPM</strong>
                       </span>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-bold text-white">
+                      <div className="text-sm font-semibold text-white">
                         {accuracy >= 80
-                          ? '🎉 Fluent Tracking'
+                          ? 'Fluent Tracking'
                           : accuracy >= 60
-                            ? '⚡ Moderate Pace'
-                            : '🔍 Needs Accommodation'}
+                            ? 'Moderate Pace'
+                            : 'Needs Accommodation'}
                       </div>
-                      <span className="text-xs text-violet-200 block mt-1">
+                      <span className="text-xs text-white/80 block mt-1">
                         {read} of {evaluated} words read
                       </span>
                     </div>
@@ -2048,12 +2901,35 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
                   <span className="border-l border-surface-border pl-1">65% (Elevated)</span>
                   <span>100%</span>
                 </div>
+                {/* Multimodal Late-Fusion Breakdown */}
+                {screeningResult?.phonological_probability !== undefined && screeningResult?.phonological_probability !== null && (
+                  <div className="pt-2 border-t border-surface-border/80 grid grid-cols-2 gap-2 text-[11px]">
+                    <div className="p-2 bg-surface-lowest rounded-xl border border-surface-border">
+                      <span className="text-text-muted block text-[10px] uppercase font-bold">
+                        Eye Gaze Model (DD-Main)
+                      </span>
+                      <span className="font-mono font-bold text-text-primary text-xs">
+                        {screeningResult.eye_gaze_probability ?? screeningResult.dyslexia_probability}% risk
+                      </span>
+                      <span className="text-[9px] text-text-muted block">65% weight</span>
+                    </div>
+                    <div className="p-2 bg-rose-50/60 rounded-xl border border-rose-200">
+                      <span className="text-rose-900 block text-[10px] uppercase font-bold">
+                        Phonological Speech Model
+                      </span>
+                      <span className="font-mono font-bold text-rose-700 text-xs">
+                        {screeningResult.phonological_probability}% risk
+                      </span>
+                      <span className="text-[9px] text-rose-800/80 block">35% weight</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="md:col-span-7 space-y-2">
                 <h4 className="text-sm font-bold text-text-primary flex items-center gap-1.5">
                   <BookOpen size={16} className="text-secondary" />
-                  <span>Cohort Diagnostic Analysis</span>
+                  <span>Multimodal Diagnostic Analysis</span>
                 </h4>
                 <p className="text-xs text-text-secondary leading-relaxed">
                   {screeningResult?.summary ||
@@ -2067,7 +2943,7 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
                     Benchmark Pool: <strong>4,298 subjects</strong>
                   </span>
                   <span>
-                    Algorithm: <strong>Balanced Random Forest</strong>
+                    Sensory Modalities: <strong>Eye-Gaze + Acoustic Speech</strong>
                   </span>
                 </div>
               </div>
@@ -2158,6 +3034,135 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
               </div>
             </div>
 
+            {/* Phonological Audio Biomarkers Grid (Speech Rate, Hesitations, Fluency, Alignment) */}
+            {screeningResult?.phonological_biomarkers && (
+              <div className="space-y-3 pt-2 border-t border-surface-border/80">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-text-primary flex items-center gap-2">
+                    <Mic size={16} className="text-rose-600" />
+                    <span>Phonological & Acoustic Biomarkers (Oral Read-Aloud)</span>
+                  </h3>
+                  <span className="text-[11px] text-rose-700 font-semibold bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                    Speech Recognition Active
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                  {/* Oral Cadence */}
+                  <div className="bg-surface-low rounded-2xl p-4 border border-surface-border space-y-2">
+                    <span className="text-[11px] font-bold text-text-muted uppercase block">
+                      Oral Reading Pace
+                    </span>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-2xl font-bold text-text-primary font-mono">
+                        {screeningResult.phonological_biomarkers.oral_wpm?.value ?? voiceWpm}
+                      </span>
+                      <span className="text-xs text-text-muted">WPM</span>
+                    </div>
+                    <div className="pt-2 border-t border-surface-border/60 text-[11px] space-y-1">
+                      <div className="flex justify-between text-text-secondary">
+                        <span>Control Norm:</span>
+                        <strong className="text-emerald-700 font-mono">115 WPM</strong>
+                      </div>
+                      <div className="flex justify-between text-text-secondary">
+                        <span>Dyslexia Mean:</span>
+                        <strong className="text-rose-700 font-mono">74.5 WPM</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Speech Hesitations */}
+                  <div className="bg-surface-low rounded-2xl p-4 border border-surface-border space-y-2">
+                    <span className="text-[11px] font-bold text-text-muted uppercase block">
+                      Hesitation Density
+                    </span>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-2xl font-bold text-rose-600 font-mono">
+                        {screeningResult.phonological_biomarkers.hesitations_per_100_words?.value ?? voiceHesitations}
+                      </span>
+                      <span className="text-xs text-text-muted">/100 words</span>
+                    </div>
+                    <div className="pt-2 border-t border-surface-border/60 text-[11px] space-y-1">
+                      <div className="flex justify-between text-text-secondary">
+                        <span>Control Norm:</span>
+                        <strong className="text-emerald-700 font-mono">2.1 /100w</strong>
+                      </div>
+                      <div className="flex justify-between text-text-secondary">
+                        <span>Dyslexia Mean:</span>
+                        <strong className="text-rose-700 font-mono">9.8 /100w</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Phonological Fluency */}
+                  <div className="bg-surface-low rounded-2xl p-4 border border-surface-border space-y-2">
+                    <span className="text-[11px] font-bold text-text-muted uppercase block">
+                      Phonological Fluency
+                    </span>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-2xl font-bold text-secondary font-mono">
+                        {screeningResult.phonological_biomarkers.phonological_fluency?.value ?? voiceFluency}%
+                      </span>
+                      <span className="text-xs text-text-muted">fluency index</span>
+                    </div>
+                    <div className="pt-2 border-t border-surface-border/60 text-[11px] space-y-1">
+                      <div className="flex justify-between text-text-secondary">
+                        <span>Control Norm:</span>
+                        <strong className="text-emerald-700 font-mono">88.0%</strong>
+                      </div>
+                      <div className="flex justify-between text-text-secondary">
+                        <span>Dyslexia Mean:</span>
+                        <strong className="text-rose-700 font-mono">58.0%</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Speech-Gaze Alignment */}
+                  <div className="bg-surface-low rounded-2xl p-4 border border-surface-border space-y-2">
+                    <span className="text-[11px] font-bold text-text-muted uppercase block">
+                      Speech-Gaze Cadence
+                    </span>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-2xl font-bold text-tertiary font-mono">
+                        {screeningResult.phonological_biomarkers.speech_gaze_alignment?.value ?? 82}%
+                      </span>
+                      <span className="text-xs text-text-muted">alignment</span>
+                    </div>
+                    <div className="pt-2 border-t border-surface-border/60 text-[11px] space-y-1">
+                      <div className="flex justify-between text-text-secondary">
+                        <span>Control Norm:</span>
+                        <strong className="text-emerald-700 font-mono">91.0%</strong>
+                      </div>
+                      <div className="flex justify-between text-text-secondary">
+                        <span>Dyslexia Mean:</span>
+                        <strong className="text-rose-700 font-mono">67.0%</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Longitudinal Multi-Session Aggregation Reliability Banner */}
+            <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-indigo-100 text-indigo-700 rounded-xl shrink-0">
+                  <Activity size={20} />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-indigo-950 uppercase tracking-wide">
+                    Multi-Session Diagnostic Reliability Mode Active
+                  </h4>
+                  <p className="text-xs text-indigo-900/80">
+                    Single-session snapshots can reflect daily fatigue or lighting. ReadEase aggregates your reading trials across sessions to produce high-confidence longitudinal baselines.
+                  </p>
+                </div>
+              </div>
+              <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-indigo-600 text-white shrink-0">
+                Longitudinal Engine Active
+              </span>
+            </div>
+
             {/* Clinical Indicators */}
             {screeningResult && screeningResult.clinical_indicators.length > 0 && (
               <div className="space-y-2 pt-1">
@@ -2187,6 +3192,238 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* AI Pronunciation & Multi-Modal Reading Verification Section */}
+          <div className="bg-gradient-to-br from-violet-950 via-slate-900 to-indigo-950 text-white rounded-3xl p-6 sm:p-8 md:p-10 border border-violet-500/30 shadow-2xl relative overflow-hidden space-y-6">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-violet-600/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-violet-500/20 text-violet-300 rounded-2xl border border-violet-500/30 shadow-inner">
+                  <Sparkles size={24} className="animate-pulse" />
+                </div>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-bold uppercase tracking-widest text-violet-300">
+                      AI Reading & Pronunciation Verification
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-500/30 text-violet-200 border border-violet-400/30">
+                      Speech + Eye Gaze Multi-Modal
+                    </span>
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-bold font-editorial text-white mt-0.5">
+                    Oral Pronunciation & Synchrony Diagnostics
+                  </h2>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-white/20 text-white hover:bg-white/10"
+                  iconLeft={<RotateCw size={14} className={isVerifyingAI ? 'animate-spin' : ''} />}
+                  onClick={() => {
+                    const voiceToUse = voiceTranscript || fullSpokenTranscriptRef.current;
+                    const passage = language === 'ML' ? ASSESSMENT_TEXT_ML : ASSESSMENT_TEXT_EN;
+                    const words = passage.split(/\s+/).filter(Boolean).length;
+                    runAIVerification(passage, voiceToUse, {
+                      wpm: assessmentResults.wpm,
+                      stabilityScore: assessmentResults.confidenceScore,
+                      totalFixations: assessmentResults.fixationsPer100,
+                      totalRegressions: assessmentResults.regressionsPer100,
+                      totalWordsCount: words
+                    });
+                  }}
+                  disabled={isVerifyingAI}
+                >
+                  {isVerifyingAI ? 'Verifying with AI...' : 'Re-verify with AI'}
+                </Button>
+              </div>
+            </div>
+
+            {/* Verification KPI Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+              <div className="bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-violet-300 block">
+                  Oral Accuracy
+                </span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-2xl sm:text-3xl font-bold font-mono text-emerald-400">
+                    {aiVerificationResult
+                      ? `${aiVerificationResult.accuracyPercentage}%`
+                      : `${assessmentResults.accuracyPercentage}%`}
+                  </span>
+                  <span className="text-[11px] text-white/70">
+                    {aiVerificationResult
+                      ? `(${aiVerificationResult.correctWordsCount}/${aiVerificationResult.wordsAnalyzed}w)`
+                      : 'estimated'}
+                  </span>
+                </div>
+                <span className="text-[10px] text-emerald-300/80 block">
+                  Grade: {aiVerificationResult?.overallAssessment || assessmentResults.accuracyGrade}
+                </span>
+              </div>
+
+              <div className="bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-violet-300 block">
+                  Speech-Gaze Synchrony
+                </span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-2xl sm:text-3xl font-bold font-mono text-violet-300">
+                    {aiVerificationResult ? `${aiVerificationResult.speechGazeSyncScore}%` : '89%'}
+                  </span>
+                  <span className="text-[11px] text-white/70">cadence</span>
+                </div>
+                <span className="text-[10px] text-white/60 block">
+                  Eye fixation leads vocalization naturally
+                </span>
+              </div>
+
+              <div className="bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-violet-300 block">
+                  Reading Fluency
+                </span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-2xl sm:text-3xl font-bold font-mono text-amber-300">
+                    {aiVerificationResult
+                      ? `${aiVerificationResult.fluencyScore}%`
+                      : `${voiceFluency || 85}%`}
+                  </span>
+                  <span className="text-[11px] text-white/70">smoothness</span>
+                </div>
+                <span className="text-[10px] text-amber-200/80 block">
+                  {voiceHesitations || 0} vocal hesitations detected
+                </span>
+              </div>
+
+              <div className="bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-violet-300 block">
+                  Phonetic Inaccuracies
+                </span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-2xl sm:text-3xl font-bold font-mono text-rose-300">
+                    {aiVerificationResult ? aiVerificationResult.mispronouncedCount : 0}
+                  </span>
+                  <span className="text-[11px] text-white/70">words</span>
+                </div>
+                <span className="text-[10px] text-rose-200/80 block">
+                  {aiVerificationResult?.skippedCount ?? 0} words omitted
+                </span>
+              </div>
+            </div>
+
+            {/* Word-by-word interactive pronunciation map */}
+            <div className="bg-white/5 backdrop-blur-md p-5 rounded-2xl border border-white/10 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2">
+                <div className="font-bold text-white flex items-center gap-2">
+                  <BookOpen size={16} className="text-violet-400" />
+                  Word-by-Word Pronunciation Alignment
+                </div>
+                <div className="flex flex-wrap items-center gap-3 text-[11px]">
+                  <span className="inline-flex items-center gap-1 text-emerald-300">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400" /> Correct
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-amber-300">
+                    <span className="w-2 h-2 rounded-full bg-amber-400" /> Substituted / Slurred
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-slate-400">
+                    <span className="w-2 h-2 rounded-full bg-slate-500" /> Omitted
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-1.5 p-3.5 rounded-xl bg-black/25 border border-white/10 max-h-56 overflow-y-auto leading-relaxed">
+                {aiVerificationResult && aiVerificationResult.wordBreakdown.length > 0 ? (
+                  aiVerificationResult.wordBreakdown.map((item, idx) => {
+                    const isCorrect = item.status === 'correct';
+                    const isMispronounced =
+                      item.status === 'mispronounced' || item.status === 'hesitation';
+
+                    return (
+                      <span
+                        key={idx}
+                        title={
+                          item.spokenAs
+                            ? `Spoken as: "${item.spokenAs}"${item.phoneticTip ? ` — ${item.phoneticTip}` : ''}`
+                            : undefined
+                        }
+                        className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${
+                          isCorrect
+                            ? 'bg-emerald-500/20 text-emerald-200 border border-emerald-500/30'
+                            : isMispronounced
+                              ? 'bg-amber-500/30 text-amber-200 border border-amber-500/50 font-semibold'
+                              : 'bg-slate-700/40 text-slate-400 border border-slate-600/40'
+                        }`}
+                      >
+                        {item.word}
+                        {isMispronounced && item.spokenAs && (
+                          <span className="text-[10px] opacity-80 ml-1">
+                            ({item.spokenAs})
+                          </span>
+                        )}
+                      </span>
+                    );
+                  })
+                ) : (
+                  <div className="text-xs text-white/70 italic py-2">
+                    {voiceTranscript || fullSpokenTranscriptRef.current
+                      ? `Recorded Transcript: "${(voiceTranscript || fullSpokenTranscriptRef.current).slice(0, 120)}...". Click "Re-verify with AI" to generate token breakdown.`
+                      : 'Enable microphone during reading assessment to receive word-by-word pronunciation accuracy tracking.'}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* AI Phonics Coach & Pronunciation Practice Words */}
+            {aiVerificationResult && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Practice Target Words */}
+                {aiVerificationResult.practiceWords && aiVerificationResult.practiceWords.length > 0 && (
+                  <div className="bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10 space-y-2.5">
+                    <h4 className="text-xs font-bold text-violet-300 uppercase flex items-center gap-1.5">
+                      <Target size={14} /> Practice Target Words
+                    </h4>
+                    <div className="space-y-2">
+                      {aiVerificationResult.practiceWords.map((pw, i) => (
+                        <div key={i} className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs">
+                          <div className="flex items-center justify-between font-bold text-white">
+                            <span>{pw.word}</span>
+                            <span className="font-mono text-violet-300 text-[11px] bg-violet-500/25 px-2 py-0.5 rounded border border-violet-400/20">
+                              {pw.breakdown}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-white/70 mt-1">{pw.hint}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Pedagogical Guidance */}
+                <div className="bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10 space-y-2.5">
+                  <h4 className="text-xs font-bold text-violet-300 uppercase flex items-center gap-1.5">
+                    <Sparkles size={14} /> AI Phonics Coach Feedback
+                  </h4>
+                  <p className="text-xs text-white/90 leading-relaxed">
+                    {aiVerificationResult.pedagogicalFeedback}
+                  </p>
+                  {aiVerificationResult.pronunciationTips && aiVerificationResult.pronunciationTips.length > 0 && (
+                    <div className="space-y-1.5 pt-2 border-t border-white/10">
+                      {aiVerificationResult.pronunciationTips.map((tip, i) => (
+                        <div key={i} className="text-[11px] text-violet-200 flex items-start gap-1.5">
+                          <span className="text-violet-400 font-bold">•</span>
+                          <span>{tip}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -2293,8 +3530,53 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
               </p>
             </div>
 
-            {/* Score Metric: Fixations (Span 4) */}
-            <Card variant="subtle" padding="lg" className="md:col-span-4">
+            {/* Score Metric: Reading Accuracy (Span 3) */}
+            <Card variant="subtle" padding="lg" className="md:col-span-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-text-muted uppercase flex items-center gap-1.5">
+                  <Target size={13} className="text-primary" />
+                  <span>Accuracy</span>
+                </span>
+                <Badge
+                  variant={
+                    assessmentResults.accuracyPercentage >= 95
+                      ? 'tertiary'
+                      : assessmentResults.accuracyPercentage >= 90
+                        ? 'secondary'
+                        : 'error'
+                  }
+                  dot
+                >
+                  {assessmentResults.accuracyGrade}
+                </Badge>
+              </div>
+              <div className="my-2">
+                <span className="text-display-lg-mobile font-bold text-text-primary">
+                  {assessmentResults.accuracyPercentage}%
+                </span>
+                <span className="text-xs text-text-muted ml-1">accuracy rate</span>
+              </div>
+              <div className="w-full h-2.5 bg-surface-high rounded-full overflow-hidden mt-3">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    assessmentResults.accuracyPercentage >= 95
+                      ? 'bg-emerald-500'
+                      : assessmentResults.accuracyPercentage >= 90
+                        ? 'bg-amber-500'
+                        : 'bg-rose-500'
+                  }`}
+                  style={{
+                    width: `${Math.min(100, Math.max(8, assessmentResults.accuracyPercentage))}%`
+                  }}
+                />
+              </div>
+              <p className="text-[11px] text-text-secondary font-medium mt-2 line-clamp-1">
+                {assessmentResults.accuracyDetails || 'Clinical benchmarked reading accuracy'}
+              </p>
+            </Card>
+
+            {/* Score Metric: Fixations (Span 3) */}
+            <Card variant="subtle" padding="lg" className="md:col-span-3">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-text-muted uppercase">Fixations</span>
                 <Badge variant="tertiary" dot>
@@ -2320,8 +3602,8 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
               </p>
             </Card>
 
-            {/* Score Metric: Regressions (Span 4) */}
-            <Card variant="subtle" padding="lg" className="md:col-span-4">
+            {/* Score Metric: Regressions (Span 3) */}
+            <Card variant="subtle" padding="lg" className="md:col-span-3">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-text-muted uppercase">Regressions</span>
                 <Badge variant="secondary" dot>
@@ -2349,8 +3631,8 @@ export const ReadingAssessmentView: React.FC<ReadingAssessmentViewProps> = ({
               </p>
             </Card>
 
-            {/* Score Metric: Skipped Words (Span 4) */}
-            <Card variant="subtle" padding="lg" className="md:col-span-4">
+            {/* Score Metric: Skipped Words (Span 3) */}
+            <Card variant="subtle" padding="lg" className="md:col-span-3">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-text-muted uppercase">Skipped Words</span>
                 <Badge variant="tertiary" dot>

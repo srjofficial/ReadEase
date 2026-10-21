@@ -101,38 +101,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       case 'teacher':
         return {
-          title: 'Educator Portal',
-          primaryActionLabel: 'Assign New Reading',
+          title: t('nav.teacherPortal', 'Educator Portal'),
+          primaryActionLabel: t('nav.assignReading', 'Assign New Reading'),
           primaryActionIcon: <BookOpen size={18} />,
           navItems: [
             {
               id: 'dashboard',
-              label: 'Class Overview',
+              label: t('nav.classOverview', 'Class Overview'),
               icon: <LayoutDashboard size={20} />,
               href: '#dashboard'
             },
-            { id: 'roster', label: 'Class Roster', icon: <Users size={20} />, href: '#roster' },
+            { id: 'roster', label: t('nav.classRoster', 'Class Roster'), icon: <Users size={20} />, href: '#roster' },
             {
               id: 'assignments',
-              label: 'Reading Assignments',
+              label: t('nav.readingAssignments', 'Reading Assignments'),
               icon: <FileCheck size={20} />,
               href: '#assignments'
             },
             {
               id: 'student-reports',
-              label: 'Reading Analytics',
+              label: t('nav.readingAnalytics', 'Reading Analytics'),
               icon: <GraduationCap size={20} />,
               href: '#reports'
             },
             {
               id: 'lesson-plans',
-              label: 'Lesson Materials',
+              label: t('nav.lessonMaterials', 'Lesson Materials'),
               icon: <FolderKanban size={20} />,
               href: '#materials'
             },
             {
               id: 'settings',
-              label: 'Class Settings',
+              label: t('nav.classSettings', 'Class Settings'),
               icon: <SlidersHorizontal size={20} />,
               href: '#settings'
             }
@@ -141,38 +141,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       case 'special-educator':
         return {
-          title: 'Special Education',
-          primaryActionLabel: 'New Diagnostic Check',
+          title: t('nav.specialEducation', 'Special Education'),
+          primaryActionLabel: t('nav.newDiagnostic', 'New Diagnostic Check'),
           primaryActionIcon: <Brain size={18} />,
           navItems: [
             {
               id: 'dashboard',
-              label: 'Caseload Overview',
+              label: t('nav.caseloadOverview', 'Caseload Overview'),
               icon: <LayoutDashboard size={20} />,
               href: '#dashboard'
             },
             {
               id: 'iep-tracking',
-              label: 'IEP Reading Goals',
+              label: t('nav.iepGoals', 'IEP Reading Goals'),
               icon: <ClipboardList size={20} />,
               href: '#iep',
               badge: '3 Due'
             },
             {
               id: 'diagnostics',
-              label: 'Diagnostic Assessments',
+              label: t('nav.diagnosticAssessments', 'Diagnostic Assessments'),
               icon: <Activity size={20} />,
               href: '#diagnostics'
             },
             {
               id: 'phoneme-analytics',
-              label: 'Phonemic Analysis',
+              label: t('nav.phonemicAnalysis', 'Phonemic Analysis'),
               icon: <Sparkles size={20} />,
               href: '#phonemes'
             },
             {
               id: 'custom-profiles',
-              label: 'Accommodation Profiles',
+              label: t('nav.accommodationProfiles', 'Accommodation Profiles'),
               icon: <SlidersHorizontal size={20} />,
               href: '#profiles'
             }
@@ -181,31 +181,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       case 'parent':
         return {
-          title: 'Parent Companion',
-          primaryActionLabel: 'Log Home Reading',
+          title: t('nav.parentCompanion', 'Parent Companion'),
+          primaryActionLabel: t('nav.logHomeReading', 'Log Home Reading'),
           primaryActionIcon: <BookOpen size={18} />,
           navItems: [
             {
               id: 'dashboard',
-              label: 'Child Progress',
+              label: t('nav.childProgress', 'Child Progress'),
               icon: <LayoutDashboard size={20} />,
               href: '#dashboard'
             },
             {
               id: 'reading-log',
-              label: 'Home Reading Log',
+              label: t('nav.homeReadingLog', 'Home Reading Log'),
               icon: <BookOpen size={20} />,
               href: '#log'
             },
             {
               id: 'presets',
-              label: 'Home Accommodations',
+              label: t('nav.homeAccommodations', 'Home Accommodations'),
               icon: <SlidersHorizontal size={20} />,
               href: '#presets'
             },
             {
               id: 'educator-notes',
-              label: 'Teacher Collaboration',
+              label: t('nav.teacherCollaboration', 'Teacher Collaboration'),
               icon: <HeartHandshake size={20} />,
               href: '#notes'
             }
@@ -214,37 +214,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       case 'admin':
         return {
-          title: 'Admin Console',
-          primaryActionLabel: 'System Diagnostics',
+          title: t('nav.adminConsole', 'Admin Console'),
+          primaryActionLabel: t('nav.systemDiagnostics', 'System Diagnostics'),
           primaryActionIcon: <Activity size={18} />,
           navItems: [
             {
               id: 'dashboard',
-              label: 'System Health',
+              label: t('nav.systemHealth', 'System Health'),
               icon: <LayoutDashboard size={20} />,
               href: '#dashboard'
             },
             {
               id: 'users',
-              label: 'User & Role Management',
+              label: t('nav.userRoleManagement', 'User & Role Management'),
               icon: <Users size={20} />,
               href: '#users'
             },
             {
               id: 'ai-pipeline',
-              label: 'AI & OCR Service',
+              label: t('nav.aiOcrService', 'AI & OCR Service'),
               icon: <Brain size={20} />,
               href: '#ai-pipeline'
             },
             {
               id: 'rag-kb',
-              label: 'RAG Knowledge Base',
+              label: t('nav.ragKnowledge', 'RAG Knowledge Base'),
               icon: <Database size={20} />,
               href: '#rag'
             },
             {
               id: 'audit-logs',
-              label: 'Audit & Compliance Logs',
+              label: t('nav.auditLogs', 'Audit & Compliance Logs'),
               icon: <ShieldAlert size={20} />,
               href: '#logs'
             }
@@ -263,38 +263,41 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Top Header & User Card */}
       <div className="space-y-6">
         {/* Brand */}
-        <div className="space-y-1.5">
-          <a href="/" className="block focus-visible:ring-2 focus-visible:ring-primary rounded-lg">
+        <div className="space-y-2 shrink-0">
+          <a
+            href="/"
+            className="inline-flex items-center px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#10204d] to-[#1a3275] border border-[#2b449b]/40 shadow-soft hover:shadow-md hover:from-[#14265c] hover:to-[#203c8c] transition-all group focus-visible:ring-2 focus-visible:ring-primary shrink-0"
+          >
             <img
               src="/ReadEase_wordmark_transparent.svg"
               alt="ReadEase"
-              className="h-8 md:h-9 w-auto object-contain hover:opacity-90 transition-opacity"
+              className="h-8 md:h-8.5 w-auto min-w-[110px] object-contain group-hover:scale-[1.02] transition-transform shrink-0"
             />
           </a>
-          <span className="text-xs font-semibold text-secondary uppercase tracking-wider block pl-0.5">
+          <span className="text-xs font-semibold text-secondary uppercase tracking-wider block pl-1 leading-normal">
             {config.title}
           </span>
         </div>
 
         {/* User Status Card */}
-        <div className="p-4 bg-surface-low border border-surface-border rounded-xl space-y-3 shadow-soft">
+        <div className="p-4 bg-surface-low border border-surface-border rounded-xl space-y-3 shadow-soft shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full bg-primary-50 border-2 border-primary-200 flex items-center justify-center text-primary font-bold text-body-md shadow-sm">
+            <div className="w-11 h-11 rounded-full bg-primary-50 border-2 border-primary-200 flex items-center justify-center text-primary font-bold text-body-md shadow-sm shrink-0">
               {userName.charAt(0)}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-label-md font-semibold text-text-primary truncate">{userName}</p>
-              <p className="text-xs text-text-muted truncate">{userEmail}</p>
+              <p className="text-label-md font-semibold text-text-primary truncate leading-normal">{userName}</p>
+              <p className="text-xs text-text-muted truncate leading-normal">{userEmail}</p>
             </div>
           </div>
 
           <button
             type="button"
             onClick={onPrimaryAction}
-            className="w-full min-h-[44px] px-3 py-2.5 bg-primary text-white text-label-md font-semibold rounded-lg hover:bg-primary-hover shadow-soft transition-all flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-primary"
+            className="w-full min-h-[44px] px-3 py-2.5 bg-primary text-white text-label-md font-semibold rounded-lg hover:bg-primary-hover shadow-soft transition-all flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-primary shrink-0 leading-normal"
           >
-            {config.primaryActionIcon}
-            <span>{config.primaryActionLabel}</span>
+            <span className="shrink-0">{config.primaryActionIcon}</span>
+            <span className="truncate">{config.primaryActionLabel}</span>
           </button>
         </div>
 
@@ -315,15 +318,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         : 'text-text-secondary hover:bg-surface-low hover:text-text-primary'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <span className={isActive ? 'text-secondary-onContainer' : 'text-primary'}>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className={`${isActive ? 'text-secondary-onContainer' : 'text-primary'} shrink-0`}>
                         {item.icon}
                       </span>
-                      <span>{item.label}</span>
+                      <span className="leading-relaxed truncate">{item.label}</span>
                     </div>
 
                     {item.badge && (
-                      <span className="px-2 py-0.5 text-[0.7rem] font-bold bg-primary-100 text-primary-dark rounded-full">
+                      <span className="px-2 py-0.5 text-[0.7rem] font-bold bg-primary-100 text-primary-dark rounded-full shrink-0">
                         {item.badge}
                       </span>
                     )}

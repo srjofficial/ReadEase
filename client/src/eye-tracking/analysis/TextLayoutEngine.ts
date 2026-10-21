@@ -44,6 +44,11 @@ export class TextLayoutEngine {
     this.refreshLayout();
   }
 
+  public getContainerBounds(): DOMRect | null {
+    if (!this.containerElement) return null;
+    return this.containerElement.getBoundingClientRect();
+  }
+
   public refreshLayout(): void {
     const selector = '[data-word-idx]';
     const root = this.containerElement || document;

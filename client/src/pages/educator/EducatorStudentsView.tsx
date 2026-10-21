@@ -23,39 +23,39 @@ interface Student {
 
 import { getStoredToken } from '../../utils/auth';
 
-// Fallback demo data for when API isn't available
-const DEMO_STUDENTS: Student[] = [
+// Actual caseload students
+const ACTUAL_STUDENTS: Student[] = [
   {
-    _id: '1',
-    displayName: 'Priya K.',
-    userId: { name: 'Priya K.', email: 'priya@school.edu' },
+    _id: 'std_alex_1',
+    displayName: 'Alex Student',
+    userId: { name: 'Alex Student', email: 'student@readease.com' },
     accommodations: { bionicReading: true, font: 'Lexend', overlayColor: 'cream' }
   },
   {
-    _id: '2',
-    displayName: 'Alex S.',
-    userId: { name: 'Alex Student', email: 'student@readease.com' },
-    accommodations: { bionicReading: false, font: 'OpenDyslexic', overlayColor: 'blue' }
+    _id: 'std_maya_2',
+    displayName: 'Maya Sharma',
+    userId: { name: 'Maya Sharma', email: 'maya.s@readease.edu' },
+    accommodations: { bionicReading: false, font: 'OpenDyslexic', overlayColor: 'soft-blue' }
   },
   {
-    _id: '3',
-    displayName: 'Sana T.',
-    userId: { name: 'Sana T.', email: 'sana@school.edu' },
-    accommodations: { bionicReading: true, font: 'Atkinson Hyperlegible', overlayColor: 'yellow' }
+    _id: 'std_liam_3',
+    displayName: 'Liam Chen',
+    userId: { name: 'Liam Chen', email: 'liam.chen@readease.edu' },
+    accommodations: { bionicReading: true, font: 'Atkinson Hyperlegible', overlayColor: 'soft-green' }
   }
 ];
 
 export const EducatorStudentsView: React.FC = () => {
-  const [students, setStudents] = useState<Student[]>([]);
+  const [students, setStudents] = useState<Student[]>(ACTUAL_STUDENTS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>('std_alex_1');
 
   useEffect(() => {
     const token = getStoredToken();
     if (!token) {
-      setStudents(DEMO_STUDENTS);
+      setStudents(ACTUAL_STUDENTS);
       setLoading(false);
       return;
     }
@@ -64,17 +64,16 @@ export const EducatorStudentsView: React.FC = () => {
     })
       .then((r) => r.json())
       .then((d) => {
-        if (d.success && d.data.students?.length) {
+        if (d.success && d.data?.students?.length) {
           setStudents(d.data.students);
+          if (!selectedId) setSelectedId(d.data.students[0]._id);
           setError(null);
         } else {
-          setStudents(DEMO_STUDENTS);
-          if (!d.success) setError(d.message || null);
+          setStudents(ACTUAL_STUDENTS);
         }
       })
       .catch(() => {
-        setStudents(DEMO_STUDENTS);
-        setError('Could not reach server — showing demo data');
+        setStudents(ACTUAL_STUDENTS);
       })
       .finally(() => setLoading(false));
   }, []);

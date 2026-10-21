@@ -114,6 +114,27 @@ async function seedAccounts() {
       await parent.save();
     }
 
+    // 5. Create or Update Administrator User
+    console.log('👤 Creating/updating Admin user...');
+    let admin = await User.findOne({ email: 'admin@readease.com' });
+    if (!admin) {
+      admin = new User({
+        name: 'System Administrator',
+        email: 'admin@readease.com',
+        passwordHash,
+        role: 'admin',
+        status: 'active',
+        isEmailVerified: true
+      });
+      await admin.save();
+    } else {
+      admin.passwordHash = passwordHash;
+      admin.status = 'active';
+      admin.isEmailVerified = true;
+      admin.role = 'admin';
+      await admin.save();
+    }
+
     // Profiles setup & inter-linking
     console.log('🔗 Configuring role profiles and linking relations...');
 

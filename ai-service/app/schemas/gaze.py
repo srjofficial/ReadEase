@@ -145,6 +145,15 @@ class BiomarkerComparison(BaseModel):
     gaze_stability: BiomarkerMetric
 
 
+class PhonologicalBiomarkers(BaseModel):
+    oral_wpm: Optional[BiomarkerMetric] = None
+    hesitations_per_100_words: Optional[BiomarkerMetric] = None
+    phonological_fluency: Optional[BiomarkerMetric] = None
+    speech_gaze_alignment: Optional[BiomarkerMetric] = None
+    hesitation_count: Optional[int] = None
+    phonological_risk_score: Optional[float] = None
+
+
 class ClinicalIndicator(BaseModel):
     title: str
     severity: Literal["low", "moderate", "high"]
@@ -162,6 +171,12 @@ class DyslexiaScreeningRequest(BaseModel):
     saccade_lengths: Optional[List[float]] = None
     wpm: Optional[int] = None
     age: Optional[int] = None
+    # Phonological & Voice Telemetry
+    voice_wpm: Optional[float] = Field(default=None, ge=0.0)
+    voice_fluency_score: Optional[float] = Field(default=None, ge=0.0, le=100.0)
+    voice_hesitation_count: Optional[int] = Field(default=None, ge=0)
+    voice_transcript: Optional[str] = None
+    accuracy_percentage: Optional[float] = Field(default=None, ge=0.0, le=100.0, description="Reading accuracy score (%)")
 
 
 class DyslexiaScreeningResponse(BaseModel):
@@ -169,11 +184,15 @@ class DyslexiaScreeningResponse(BaseModel):
     student_id: Optional[str] = None
     risk_level: Literal["Low Risk", "Moderate Risk", "Elevated Risk"]
     dyslexia_probability: float = Field(..., ge=0.0, le=100.0, description="Predicted probability (0 to 100%)")
+    eye_gaze_probability: Optional[float] = Field(default=None, ge=0.0, le=100.0)
+    phonological_probability: Optional[float] = Field(default=None, ge=0.0, le=100.0)
     confidence_score: float = Field(..., ge=0.0, le=100.0, description="Model confidence score")
     summary: str
     biomarkers: BiomarkerComparison
+    phonological_biomarkers: Optional[PhonologicalBiomarkers] = None
     clinical_indicators: List[ClinicalIndicator]
     recommended_accommodations: Dict[str, Any]
     model_metadata: Dict[str, Any]
+
 
 

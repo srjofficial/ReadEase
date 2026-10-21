@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Send,
-  Sparkles,
   Volume2,
   VolumeX,
   Copy,
@@ -10,9 +9,10 @@ import {
   BookOpen,
   Lightbulb,
   CornerDownLeft,
-  PanelRightClose
+  PanelRightClose,
+  Bot
 } from 'lucide-react';
-import { AnimatedBotIcon } from './AnimatedBotIcon';
+
 import { useLanguage, type Language } from '../../context/LanguageContext';
 import { TTSEngine } from '../../utils/ttsEngine';
 
@@ -314,23 +314,17 @@ export const AiChatbotDrawer: React.FC<AiChatbotDrawerProps> = ({
         <header className="p-3.5 border-b border-surface-border bg-surface-low/70 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="w-11 h-11 rounded-2xl bg-primary-50 dark:bg-primary-950/40 border border-primary-200 dark:border-primary-800 flex items-center justify-center shadow-xs">
-                <AnimatedBotIcon size={34} />
+              <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-950/40 border border-primary-200 dark:border-primary-800 flex items-center justify-center shadow-xs">
+                <Bot size={20} className="text-primary" />
               </div>
-              <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-surface-lowest" />
-              </span>
             </div>
 
             <div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 <h2 className="font-bold text-sm text-text-primary tracking-tight">
-                  ReadEase AI Buddy
+                  ReadEase Assistant
                 </h2>
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-primary-50 text-primary text-[10px] font-bold uppercase tracking-wider">
-                  <Sparkles size={10} /> AI
-                </span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
               </div>
               <p className="text-xs text-text-muted">
                 {chatLanguage === 'ML'
@@ -415,7 +409,7 @@ export const AiChatbotDrawer: React.FC<AiChatbotDrawerProps> = ({
             >
               {msg.sender === 'ai' && (
                 <div className="w-8 h-8 rounded-xl bg-primary-50 text-primary flex items-center justify-center shrink-0 mt-0.5 border border-primary-200 shadow-xs">
-                  <AnimatedBotIcon size={24} />
+                  <Bot size={16} className="text-primary" />
                 </div>
               )}
 
@@ -485,7 +479,7 @@ export const AiChatbotDrawer: React.FC<AiChatbotDrawerProps> = ({
                         onClick={() => handleSendMessage(sug)}
                         className="text-[11px] px-2.5 py-1 rounded-full bg-surface hover:bg-primary-50 hover:text-primary hover:border-primary-200 border border-surface-border text-text-secondary transition-all cursor-pointer text-left active:scale-95"
                       >
-                        👉 {sug}
+                        <span className="text-primary font-bold mr-1">›</span>{sug}
                       </button>
                     ))}
                   </div>
@@ -498,7 +492,7 @@ export const AiChatbotDrawer: React.FC<AiChatbotDrawerProps> = ({
           {isLoading && (
             <div className="flex gap-2.5 justify-start animate-in fade-in duration-150">
               <div className="w-8 h-8 rounded-xl bg-primary-50 text-primary flex items-center justify-center shrink-0 border border-primary-200">
-                <AnimatedBotIcon size={24} />
+                <Bot size={16} className="text-primary" />
               </div>
               <div className="p-3 rounded-2xl rounded-tl-none bg-surface-lowest border border-surface-border shadow-xs flex items-center gap-2">
                 <div className="flex items-center gap-1">

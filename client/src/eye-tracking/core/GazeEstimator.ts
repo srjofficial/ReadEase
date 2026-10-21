@@ -6,13 +6,14 @@
  * 2. MLGazeEstimator (Adapter Stub): Ready for future ONNX / L2CS-Net integration
  */
 
-import type { Point3D, HeadPoseState, EyeFeatures, RawGazeSample } from '../types';
+import type { Point2D, Point3D, HeadPoseState, EyeFeatures, RawGazeSample } from '../types';
 
 export interface IGazeEstimator {
   estimateGaze(
     landmarks: Point3D[],
     headPose: HeadPoseState,
-    timestamp: number
+    timestamp: number,
+    video?: HTMLVideoElement | null
   ): RawGazeSample | null;
   reset(): void;
 }
@@ -20,18 +21,90 @@ export interface IGazeEstimator {
 /**
  * Geometric Gaze Estimator
  *
- * Uses MediaPipe 478 subpixel iris landmarks and projects ocular rotation vectors
- * onto the anatomical eye axis, mathematically decoupling eye movement from head tilt.
+ * Uses MediaPipe 478 subpixel iris landmarks with dark pupil centroid video fallback.
+ * Maps ocular rotation vectors to screen space with selfie-mirror inversion and high gain
+ * so eye pupil movement directly drives reading line tracking.
  */
 export class GeometricGazeEstimator implements IGazeEstimator {
   private baselineGazeX = 0.5;
   private baselineGazeY = 0.5;
   private isBaselineInitialized = false;
+  private offscreenCanvas: HTMLCanvasElement | null = null;
+  private offscreenCtx: CanvasRenderingContext2D | null = null;
+
+  /**
+   * Fallback dark-pupil centroid locator for browsers or frames where
+   * MediaPipe 478 iris refinement is unavailable.
+   */
+  private extractDarkPupilCentroid(
+    video: HTMLVideoElement,
+    eyeCornerA: Point3D,
+    eyeCornerB: Point3D,
+    topLid: Point3D,
+    bottomLid: Point3D
+  ): Point2D {
+    try {
+      const W = video.videoWidth || 640;
+      const H = video.videoHeight || 480;
+
+      const minX = Math.max(0, Math.min(eyeCornerA.x, eyeCornerB.x) * W);
+      const maxX = Math.min(W, Math.max(eyeCornerA.x, eyeCornerB.x) * W);
+      const minY = Math.max(0, topLid.y * H);
+      const maxY = Math.min(H, bottomLid.y * H);
+
+      const boxW = Math.max(2, Math.round(maxX - minX));
+      const boxH = Math.max(2, Math.round(maxY - minY));
+
+      if (!this.offscreenCanvas) {
+        this.offscreenCanvas = document.createElement('canvas');
+        this.offscreenCtx = this.offscreenCanvas.getContext('2d', { willReadFrequently: true });
+      }
+
+      if (!this.offscreenCtx || !this.offscreenCanvas) {
+        return { x: (eyeCornerA.x + eyeCornerB.x) / 2, y: (topLid.y + bottomLid.y) / 2 };
+      }
+
+      this.offscreenCanvas.width = boxW;
+      this.offscreenCanvas.height = boxH;
+      this.offscreenCtx.drawImage(video, minX, minY, boxW, boxH, 0, 0, boxW, boxH);
+
+      const imgData = this.offscreenCtx.getImageData(0, 0, boxW, boxH);
+      const data = imgData.data;
+
+      let sumX = 0;
+      let sumY = 0;
+      let weightSum = 0;
+
+      for (let y = 0; y < boxH; y++) {
+        for (let x = 0; x < boxW; x++) {
+          const idx = (y * boxW + x) * 4;
+          const lum = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+          // Heavy weight on darkest pixels (pupil & iris core)
+          const weight = Math.pow(Math.max(0, 255 - lum), 2);
+          sumX += x * weight;
+          sumY += y * weight;
+          weightSum += weight;
+        }
+      }
+
+      if (weightSum > 100) {
+        return {
+          x: (minX + sumX / weightSum) / W,
+          y: (minY + sumY / weightSum) / H
+        };
+      }
+    } catch {
+      // ignore
+    }
+
+    return { x: (eyeCornerA.x + eyeCornerB.x) / 2, y: (topLid.y + bottomLid.y) / 2 };
+  }
 
   public estimateGaze(
     landmarks: Point3D[],
     headPose: HeadPoseState,
-    timestamp: number
+    timestamp: number,
+    video?: HTMLVideoElement | null
   ): RawGazeSample | null {
     if (!landmarks || landmarks.length < 468) return null;
 
@@ -46,7 +119,9 @@ export class GeometricGazeEstimator implements IGazeEstimator {
     const rBottom = landmarks[145];
     const rIris = hasIris
       ? landmarks[468]
-      : { x: (rOuter.x + rInner.x) / 2, y: (rTop.y + rBottom.y) / 2, z: 0 };
+      : video && video.readyState >= 2
+        ? this.extractDarkPupilCentroid(video, rOuter, rInner, rTop, rBottom)
+        : { x: (rOuter.x + rInner.x) / 2, y: (rTop.y + rBottom.y) / 2, z: 0 };
 
     // Left Eye (MediaPipe 263 group):
     // Outer corner: 263, Inner corner: 362, Upper lid: 386, Lower lid: 374, Iris center: 473
@@ -56,7 +131,9 @@ export class GeometricGazeEstimator implements IGazeEstimator {
     const lBottom = landmarks[374];
     const lIris = hasIris
       ? landmarks[473]
-      : { x: (lOuter.x + lInner.x) / 2, y: (lTop.y + lBottom.y) / 2, z: 0 };
+      : video && video.readyState >= 2
+        ? this.extractDarkPupilCentroid(video, lInner, lOuter, lTop, lBottom)
+        : { x: (lOuter.x + lInner.x) / 2, y: (lTop.y + lBottom.y) / 2, z: 0 };
 
     // 2. Eye Aspect Ratio (EAR)
     const rSpanH = Math.hypot(rInner.x - rOuter.x, rInner.y - rOuter.y);
@@ -93,24 +170,32 @@ export class GeometricGazeEstimator implements IGazeEstimator {
     const lVOpen = Math.max(0.005, lBottom.y - lTop.y);
     const ratioLeftY = (lIris.y - lTop.y) / lVOpen;
 
-    // Harmonized ocular gaze ratios:
-    // Glancing from screen-left to screen-right causes both ratioRightX and ratioLeftX to increase
+    // Harmonized ocular gaze ratios
     const ocularGazeX = (ratioRightX + ratioLeftX) / 2;
     const ocularGazeY = (ratioRightY + ratioLeftY) / 2;
 
-    // 5. Adaptive resting baseline tracking
+    // 5. Anatomical resting baseline tracking
+    // Human eyes are geometrically centered when iris is mid-palpebral fissure (~0.50)
     if (!this.isBaselineInitialized) {
-      this.baselineGazeX = ocularGazeX;
-      this.baselineGazeY = ocularGazeY;
+      this.baselineGazeX = Math.max(0.44, Math.min(0.56, ocularGazeX));
+      this.baselineGazeY = Math.max(0.42, Math.min(0.54, ocularGazeY));
       this.isBaselineInitialized = true;
-    } else if (!isBlinking) {
-      // Slow continuous posture shift accommodation
-      this.baselineGazeX = 0.997 * this.baselineGazeX + 0.003 * ocularGazeX;
-      this.baselineGazeY = 0.997 * this.baselineGazeY + 0.003 * ocularGazeY;
     }
+    // Note: Do NOT drift baseline toward active gaze while reading; doing so erases ocular deflection!
 
-    const deltaX = ocularGazeX - this.baselineGazeX;
-    const deltaY = ocularGazeY - this.baselineGazeY;
+    // ── MIRRORING CORRECTION & OCULAR SENSITIVITY ──
+    // In selfie webcam video: looking to your LEFT moves the pupil to camera-right (positive X).
+    // Negate the horizontal ocular delta so looking left moves to screen-left (decreasing X).
+    // Calibrated ocular gain tuned for scoped reading passage traversal
+    const deltaOcularX = -(ocularGazeX - this.baselineGazeX) * 4.6;
+    const deltaOcularY = (ocularGazeY - this.baselineGazeY) * 3.6;
+
+    // Gentle head pose assistance (negate yaw to match mirror selfie orientation)
+    const headYawContribution = -((headPose?.yaw || 0) / 36) * 0.20;
+    const headPitchContribution = ((headPose?.pitch || 0) / 28) * 0.16;
+
+    const combinedGazeX = Math.max(0.04, Math.min(0.96, 0.5 + deltaOcularX + headYawContribution));
+    const combinedGazeY = Math.max(0.04, Math.min(0.96, 0.5 + deltaOcularY + headPitchContribution));
 
     const rightEyeFeatures: EyeFeatures = {
       irisCenter: { x: rIris.x, y: rIris.y },
@@ -141,8 +226,8 @@ export class GeometricGazeEstimator implements IGazeEstimator {
 
     return {
       timestamp,
-      rawGazeX: 0.5 + deltaX,
-      rawGazeY: 0.5 + deltaY,
+      rawGazeX: combinedGazeX,
+      rawGazeY: combinedGazeY,
       leftEye: leftEyeFeatures,
       rightEye: rightEyeFeatures,
       headPose,
@@ -171,10 +256,10 @@ export class MLGazeEstimatorAdapter implements IGazeEstimator {
   public estimateGaze(
     landmarks: Point3D[],
     headPose: HeadPoseState,
-    timestamp: number
+    timestamp: number,
+    video?: HTMLVideoElement | null
   ): RawGazeSample | null {
-    // When a custom ML model is loaded, inference runs here; otherwise delegates to geometric model
-    return this.fallbackEstimator.estimateGaze(landmarks, headPose, timestamp);
+    return this.fallbackEstimator.estimateGaze(landmarks, headPose, timestamp, video);
   }
 
   public reset(): void {

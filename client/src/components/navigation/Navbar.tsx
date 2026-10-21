@@ -25,11 +25,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
-    { label: t('nav.about', 'About'), href: '/#about' },
-    { label: t('nav.features', 'Features'), href: '/#features' },
-    { label: t('nav.tools', 'Reading Tools'), href: '/#tools' },
-    { label: t('nav.testimonials', 'Testimonials'), href: '/#testimonials' },
-    { label: t('nav.faq', 'FAQ'), href: '/#faq' }
+    { label: t('nav.bilingual', 'Malayalam & Bilingual'), href: '/#bilingual' },
+    { label: t('nav.learningCircle', 'Learning Circle'), href: '/#circle' },
+    { label: t('nav.clinicalNotes', 'Clinical Notes'), href: '/#voices' }
   ];
 
   return (
@@ -37,27 +35,29 @@ export const Navbar: React.FC<NavbarProps> = ({
       aria-label="Primary Navigation"
       className="sticky top-0 z-50 bg-surface-lowest/95 backdrop-blur-md border-b border-surface-border transition-all duration-200"
     >
-      <div className="max-w-container mx-auto px-6 h-20 flex items-center justify-between">
+      <div className="max-w-container mx-auto px-4 lg:px-6 h-20 flex items-center justify-between gap-4">
         {/* Brand */}
         <Link
           to="/"
-          className="flex items-center group focus-visible:ring-2 focus-visible:ring-primary rounded-lg py-1"
+          className="flex items-center shrink-0 group focus-visible:ring-2 focus-visible:ring-primary rounded-xl py-1"
           aria-label="ReadEase Home"
         >
-          <img
-            src="/ReadEase_wordmark_transparent.svg"
-            alt="ReadEase"
-            className="h-9 md:h-10 w-auto object-contain group-hover:opacity-90 transition-opacity duration-150"
-          />
+          <div className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#10204d] to-[#1a3275] border border-[#2b449b]/40 shadow-soft group-hover:from-[#14265c] group-hover:to-[#203c8c] transition-all flex items-center">
+            <img
+              src="/ReadEase_wordmark_transparent.svg"
+              alt="ReadEase"
+              className="h-7 md:h-8 w-auto min-w-[105px] md:min-w-[120px] object-contain group-hover:scale-[1.02] transition-transform shrink-0"
+            />
+          </div>
         </Link>
 
         {/* Desktop Navigation Links */}
-        <div className="hidden md:flex items-center gap-8">
+        <div className="hidden lg:flex items-center gap-2.5 xl:gap-4 shrink min-w-0">
           {navLinks.map((link) => (
             <a
               key={link.href}
               href={link.href}
-              className="text-label-md text-text-secondary hover:text-primary font-medium transition-colors duration-150 relative py-1 focus-visible:ring-2 focus-visible:ring-primary rounded"
+              className="text-xs xl:text-label-md text-text-secondary hover:text-primary font-medium transition-colors duration-150 relative py-1 focus-visible:ring-2 focus-visible:ring-primary rounded leading-snug whitespace-nowrap shrink-0"
             >
               {link.label}
             </a>
@@ -65,16 +65,16 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Desktop Actions */}
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden lg:flex items-center gap-2 xl:gap-3 shrink-0">
           {/* Language Switcher */}
           <button
             type="button"
             onClick={onLanguageToggle || toggleLanguage}
             aria-label={`Current language is ${effectiveLang === 'EN' ? 'English' : 'Malayalam'}. Click to toggle.`}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-text-secondary hover:text-primary hover:bg-surface-low rounded-lg transition-colors border border-surface-border shadow-xs"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 xl:px-3 xl:py-2 text-xs font-bold text-text-secondary hover:text-primary hover:bg-surface-low rounded-lg transition-colors border border-surface-border shadow-xs"
           >
-            <Globe size={16} className="text-primary" aria-hidden="true" />
-            <span>{effectiveLang === 'EN' ? 'EN / മലയാളം' : 'മലയാളം / EN'}</span>
+            <Globe size={16} className="text-primary shrink-0" aria-hidden="true" />
+            <span className="leading-snug">{effectiveLang === 'EN' ? 'EN / മലയാളം' : 'മലയാളം / EN'}</span>
           </button>
 
           {/* Dark Mode Toggle */}
@@ -83,7 +83,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               type="button"
               onClick={onDarkModeToggle}
               aria-label={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              className="p-2 text-text-secondary hover:text-text-primary hover:bg-surface-low rounded-lg transition-colors"
+              className="p-2 text-text-secondary hover:text-text-primary hover:bg-surface-low rounded-lg transition-colors shrink-0"
             >
               {isDarkMode ? <Sun size={18} className="text-secondary" /> : <Moon size={18} />}
             </button>
@@ -94,14 +94,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               type="button"
               onClick={onLoginClick}
-              className="px-4 py-2.5 text-label-md font-semibold text-primary hover:bg-surface-low rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-primary"
+              className="px-3 xl:px-4 py-2 text-xs xl:text-label-md font-semibold text-primary hover:bg-surface-low rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-primary shrink-0 leading-snug"
             >
               {t('nav.login', 'Login')}
             </button>
           ) : (
             <Link
               to="/login"
-              className="px-4 py-2.5 text-label-md font-semibold text-primary hover:bg-surface-low rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-primary inline-flex items-center"
+              className="px-3 xl:px-4 py-2 text-xs xl:text-label-md font-semibold text-primary hover:bg-surface-low rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-primary inline-flex items-center shrink-0 leading-snug"
             >
               {t('nav.login', 'Login')}
             </Link>
@@ -112,18 +112,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               type="button"
               onClick={onSignUpClick}
-              className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-label-md font-semibold rounded-lg hover:bg-primary-hover shadow-soft transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary"
+              className="flex items-center gap-1.5 xl:gap-2 px-3.5 xl:px-5 py-2 xl:py-2.5 bg-primary text-white text-xs xl:text-label-md font-semibold rounded-lg hover:bg-primary-hover shadow-soft transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary shrink-0 leading-snug"
             >
               <span>{t('nav.signUp', 'Sign Up')}</span>
-              <ArrowRight size={16} aria-hidden="true" />
+              <ArrowRight size={16} aria-hidden="true" className="shrink-0" />
             </button>
           ) : (
             <Link
               to="/signup"
-              className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-label-md font-semibold rounded-lg hover:bg-primary-hover shadow-soft transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary"
+              className="flex items-center gap-1.5 xl:gap-2 px-3.5 xl:px-5 py-2 xl:py-2.5 bg-primary text-white text-xs xl:text-label-md font-semibold rounded-lg hover:bg-primary-hover shadow-soft transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary shrink-0 leading-snug"
             >
               <span>{t('nav.signUp', 'Sign Up')}</span>
-              <ArrowRight size={16} aria-hidden="true" />
+              <ArrowRight size={16} aria-hidden="true" className="shrink-0" />
             </Link>
           )}
         </div>
@@ -134,7 +134,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-expanded={mobileMenuOpen}
           aria-label={mobileMenuOpen ? 'Close Navigation Menu' : 'Open Navigation Menu'}
-          className="md:hidden p-2 text-text-secondary hover:text-primary rounded-lg focus-visible:ring-2 focus-visible:ring-primary"
+          className="lg:hidden p-2 text-text-secondary hover:text-primary rounded-lg focus-visible:ring-2 focus-visible:ring-primary"
         >
           {mobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
         </button>
@@ -142,7 +142,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Mobile Dropdown Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-surface-border bg-surface-lowest px-6 py-6 space-y-4 shadow-elevated animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="lg:hidden border-t border-surface-border bg-surface-lowest px-6 py-6 space-y-4 shadow-elevated animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex flex-col gap-3">
             {navLinks.map((link) => (
               <a

@@ -4,13 +4,13 @@ import {
   Users,
   ClipboardList,
   Activity,
-  Sparkles,
+  TrendingUp,
   ChevronRight,
-  AlertCircle
+  AlertCircle,
+  MessageSquareText
 } from 'lucide-react';
 import { Button, Card, Badge } from '../../components/ui';
 import { AiChatbotDrawer } from '../../components/chat/AiChatbotDrawer';
-import { AnimatedBotIcon } from '../../components/chat/AnimatedBotIcon';
 
 interface EducatorDashboardProps {
   userName?: string;
@@ -21,27 +21,33 @@ import { getStoredToken } from '../../utils/auth';
 
 const IEP_ITEMS = [
   {
-    id: '1',
-    student: 'Priya K.',
-    goal: 'Read 120 WPM fluently',
-    progress: 75,
-    dueDate: '2026-10-01',
-    status: 'on-track'
-  },
-  {
-    id: '2',
-    student: 'Alex S.',
-    goal: 'Reduce regression rate to <15%',
-    progress: 45,
-    dueDate: '2026-09-25',
+    id: 'iep_1',
+    student: 'Alex Student',
+    studentId: 'std_alex_1',
+    email: 'student@readease.com',
+    goal: 'Reduce saccadic regression rate to <15% & reach 110 WPM',
+    progress: 68,
+    dueDate: '2026-10-25',
     status: 'needs-attention'
   },
   {
-    id: '3',
-    student: 'Sana T.',
-    goal: 'Complete phoneme exercises daily',
+    id: 'iep_2',
+    student: 'Maya Sharma',
+    studentId: 'std_maya_2',
+    email: 'maya.s@readease.edu',
+    goal: 'Master consonant blends (str-, spl-) with 95% oral accuracy',
+    progress: 82,
+    dueDate: '2026-11-05',
+    status: 'on-track'
+  },
+  {
+    id: 'iep_3',
+    student: 'Liam Chen',
+    studentId: 'std_liam_3',
+    email: 'liam.chen@readease.edu',
+    goal: 'Complete daily polysyllabic chunking with 90% comprehension',
     progress: 90,
-    dueDate: '2026-10-10',
+    dueDate: '2026-11-12',
     status: 'on-track'
   }
 ];
@@ -89,10 +95,10 @@ export const SpecialEducatorDashboardView: React.FC<EducatorDashboardProps> = ({
       <Card variant="highlight" padding="lg" className="border border-tertiary/20">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-tertiary-50 text-tertiary-dark rounded-full text-xs font-bold uppercase tracking-wider">
-              <Brain size={14} /> Special Education Suite
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-tertiary-50 text-tertiary-dark rounded-full text-xs font-bold uppercase tracking-wider border border-tertiary/20">
+              <span className="w-2 h-2 rounded-full bg-tertiary" /> Special Education Suite
             </div>
-            <h1 className="text-display-lg-mobile md:text-display-lg font-bold text-text-primary">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-editorial font-normal text-text-primary tracking-tight">
               Welcome, {userName}!
             </h1>
             <p className="text-body-md text-text-secondary max-w-xl">
@@ -147,7 +153,7 @@ export const SpecialEducatorDashboardView: React.FC<EducatorDashboardProps> = ({
           {
             label: 'Avg. Progress',
             value: `${Math.round(IEP_ITEMS.reduce((a, i) => a + i.progress, 0) / IEP_ITEMS.length)}%`,
-            icon: <Sparkles size={18} className="text-primary-container" />,
+            icon: <TrendingUp size={18} className="text-primary-container" />,
             sub: 'Toward IEP goals'
           }
         ].map((s) => (
@@ -233,7 +239,7 @@ export const SpecialEducatorDashboardView: React.FC<EducatorDashboardProps> = ({
           {
             id: 'phoneme-analytics',
             label: 'Phonemic Analysis',
-            icon: <Sparkles size={20} className="text-secondary" />,
+            icon: <Brain size={20} className="text-secondary" />,
             desc: 'Malayalam/English phoneme data'
           }
         ].map((item) => (
@@ -258,14 +264,14 @@ export const SpecialEducatorDashboardView: React.FC<EducatorDashboardProps> = ({
         ))}
       </div>
 
-      {/* AI Buddy FAB */}
+      {/* AI Assistant Trigger */}
       <button
         type="button"
         onClick={() => setIsAiBuddyOpen(true)}
-        className="fixed bottom-6 right-6 z-40 w-14 h-14 bg-tertiary rounded-2xl shadow-elevated flex items-center justify-center hover:scale-110 transition-transform"
+        className="fixed bottom-6 right-6 z-40 w-12 h-12 bg-tertiary text-white rounded-xl shadow-soft flex items-center justify-center hover:bg-tertiary-dark active:scale-95 transition-all border border-tertiary/20"
         aria-label="Open AI Assistant"
       >
-        <AnimatedBotIcon size={28} className="text-white" />
+        <MessageSquareText size={20} className="text-white" />
       </button>
 
       <AiChatbotDrawer

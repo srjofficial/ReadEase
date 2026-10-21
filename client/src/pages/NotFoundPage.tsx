@@ -12,7 +12,6 @@ import {
   Sliders,
   ArrowRight,
   Lightbulb,
-  Sparkles,
   Eye,
   CheckCircle2
 } from 'lucide-react';
@@ -112,7 +111,7 @@ export const NotFoundPage: React.FC<NotFoundPageProps> = ({
 
         {/* 2. Headline & Stitch Illustration */}
         <div className="text-center max-w-2xl mb-8">
-          <h1 className="text-display-lg md:text-[3.25rem] font-bold text-text-primary tracking-tight leading-tight mb-3">
+          <h1 className="text-3xl md:text-5xl font-editorial font-normal text-text-primary tracking-tight leading-tight mb-3">
             Lost Between The Lines
           </h1>
           <p className="text-body-xl text-text-secondary leading-relaxed">
@@ -188,12 +187,12 @@ export const NotFoundPage: React.FC<NotFoundPageProps> = ({
               <span className="font-semibold text-xs tracking-wider uppercase text-secondary-dark">
                 Wayfinders
               </span>
-              <h2 className="text-headline-md font-bold text-text-primary">
+              <h2 className="text-xl font-editorial font-normal text-text-primary">
                 Popular Chapters to Explore
               </h2>
             </div>
             <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-text-secondary bg-surface-high px-3 py-1.5 rounded-full border border-surface-border">
-              <Sparkles className="w-3.5 h-3.5 text-secondary" />
+              <Compass className="w-3.5 h-3.5 text-secondary" />
               <span>4 destinations</span>
             </span>
           </div>

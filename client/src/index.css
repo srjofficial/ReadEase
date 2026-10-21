@@ -136,6 +136,67 @@
     max-width: 65ch;
     text-align: left;
   }
+
+  /* Malayalam Typography & Layout Balancing: Prevents glyph clipping while keeping UI compact and proportional */
+  :root[lang='ml'],
+  html[lang='ml'],
+  [lang='ml'] {
+    font-family: 'Noto Sans Malayalam', 'Manjari', 'Lexend', system-ui, sans-serif;
+    font-size: 15px; /* Proportionally scales down all rem-based typography to balance Malayalam glyph metrics */
+    line-height: 1.55;
+  }
+
+  html[lang='ml'] body {
+    font-family: 'Noto Sans Malayalam', 'Manjari', 'Lexend', system-ui, sans-serif;
+    line-height: 1.55;
+  }
+
+  /* Balanced scale for Malayalam headings so they do not overwhelm the viewport */
+  html[lang='ml'] h1,
+  html[lang='ml'] .text-display-lg,
+  html[lang='ml'] .text-display-lg-mobile,
+  html[lang='ml'] .md\:text-6xl,
+  html[lang='ml'] .sm\:text-5xl {
+    font-size: clamp(1.6rem, 3.2vw, 2.35rem) !important;
+    line-height: 1.35 !important;
+  }
+
+  html[lang='ml'] h2,
+  html[lang='ml'] .text-headline-md,
+  html[lang='ml'] .sm\:text-4xl,
+  html[lang='ml'] .md\:text-4xl {
+    font-size: clamp(1.25rem, 2.5vw, 1.75rem) !important;
+    line-height: 1.38 !important;
+  }
+
+  html[lang='ml'] h3,
+  html[lang='ml'] .text-headline-sm {
+    font-size: clamp(1.05rem, 2vw, 1.3rem) !important;
+    line-height: 1.4 !important;
+  }
+
+  html[lang='ml'] h4 {
+    font-size: clamp(0.95rem, 1.6vw, 1.15rem) !important;
+    line-height: 1.4 !important;
+  }
+
+  /* Clean button and link text without aggressive wrapping or hyphens */
+  html[lang='ml'] button,
+  html[lang='ml'] a,
+  html[lang='ml'] .btn {
+    line-height: 1.4;
+    hyphens: manual;
+  }
+
+  /* Nav / header flex items: preserve single-line display and prevent syllable wrapping */
+  html[lang='ml'] nav a,
+  html[lang='ml'] nav button,
+  html[lang='ml'] header a,
+  html[lang='ml'] header button {
+    white-space: nowrap;
+    word-break: normal;
+    hyphens: manual;
+  }
 }
 
 @layer utilities {
@@ -158,49 +219,34 @@
     z-index: 9999;
   }
 
-  @keyframes bot-float {
-    0%,
-    100% {
-      transform: translateY(0px) rotate(0deg);
-    }
-    50% {
-      transform: translateY(-6px) rotate(-3deg);
-    }
+
+  .font-editorial {
+    font-family: 'Newsreader', Georgia, serif;
   }
 
-  @keyframes bot-glow {
-    0%,
-    100% {
-      box-shadow:
-        0 0 16px rgba(32, 51, 144, 0.35),
-        0 0 30px rgba(232, 163, 61, 0.25);
-    }
-    50% {
-      box-shadow:
-        0 0 28px rgba(32, 51, 144, 0.65),
-        0 0 45px rgba(232, 163, 61, 0.45);
-    }
+  .bg-paper-texture {
+    background-color: #FAF8F5;
+    background-image: radial-gradient(rgba(32, 51, 144, 0.08) 0.5px, transparent 0.5px);
+    background-size: 20px 20px;
   }
 
-  @keyframes bot-badge-pulse {
-    0%,
-    100% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.06);
-    }
+  [data-theme='dark'] .bg-paper-texture,
+  .dark .bg-paper-texture {
+    background-color: #1a1a22;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.06) 0.5px, transparent 0.5px);
   }
 
-  .animate-bot-float {
-    animation: bot-float 3.5s ease-in-out infinite;
-  }
-
-  .animate-bot-glow {
-    animation: bot-glow 2.5s ease-in-out infinite;
-  }
-
-  .animate-bot-badge {
-    animation: bot-badge-pulse 2s ease-in-out infinite;
+  .reading-ruler-guide {
+    pointer-events: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 40px;
+    background-color: rgba(220, 161, 89, 0.2);
+    border-top: 2px solid rgba(220, 161, 89, 0.7);
+    border-bottom: 2px solid rgba(220, 161, 89, 0.7);
+    transition: top 0.08s ease-out;
+    z-index: 10;
   }
 }
+

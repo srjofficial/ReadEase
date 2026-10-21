@@ -13,6 +13,10 @@ export class HeadPoseEstimator {
   private smoothedRoll = 0;
   private alpha = 0.22; // temporal smoothing factor
 
+  // JEOresearch HeadTracker rolling vector buffer (filter_length = 8)
+  private rayBuffer: { x: number; y: number; z: number }[] = [];
+  private readonly filterLength = 8;
+
   public estimateHeadPose(landmarks: Point3D[]): HeadPoseState {
     if (!landmarks || landmarks.length < 468) {
       return {
@@ -20,35 +24,86 @@ export class HeadPoseEstimator {
         yaw: 0,
         roll: 0,
         alignment: 'centered',
-        distanceQuality: 'optimal'
+        distanceQuality: 'optimal',
+        headRay: { x: 0, y: 0, z: -1 }
       };
     }
 
-    // Key anatomical landmarks in MediaPipe 478 mesh:
-    // Nose tip: 1
-    // Forehead / glabella: 10
-    // Menton (chin): 152
-    // Right cheek / tragus (anatomical): 234
-    // Left cheek / tragus (anatomical): 454
+    // Key anatomical landmarks in MediaPipe 478 mesh (matches JEOresearch HeadTracker LANDMARKS):
+    // Nose tip (front): 1
+    // Forehead (top): 10
+    // Menton / Chin (bottom): 152
+    // Right cheek / tragus (left): 234
+    // Left cheek / tragus (right): 454
     const nose = landmarks[1];
     const forehead = landmarks[10];
     const chin = landmarks[152];
-    const rightCheek = landmarks[234];
-    const leftCheek = landmarks[454];
+    const leftCheek = landmarks[234];
+    const rightCheek = landmarks[454];
 
-    // 1. Pitch: vertical displacement of nose relative to face center
+    // JEOresearch 3D Head Orientation Normal Vector:
+    // right_axis = right - left
+    // up_axis = top - bottom
+    // forward_vector = np.cross(right_axis, up_axis)
+    const rightAxis = {
+      x: rightCheek.x - leftCheek.x,
+      y: rightCheek.y - leftCheek.y,
+      z: (rightCheek.z || 0) - (leftCheek.z || 0)
+    };
+    const upAxis = {
+      x: forehead.x - chin.x,
+      y: forehead.y - chin.y,
+      z: (forehead.z || 0) - (chin.z || 0)
+    };
+
+    // Cross product: forwardVector = rightAxis x upAxis
+    const rawFx = rightAxis.y * upAxis.z - rightAxis.z * upAxis.y;
+    const rawFy = rightAxis.z * upAxis.x - rightAxis.x * upAxis.z;
+    const rawFz = rightAxis.x * upAxis.y - rightAxis.y * upAxis.x;
+    const fMag = Math.hypot(rawFx, rawFy, rawFz) || 1;
+
+    const normal = {
+      x: rawFx / fMag,
+      y: rawFy / fMag,
+      z: rawFz / fMag
+    };
+
+    // Push into JEOresearch rolling average buffer (filter_length = 8)
+    this.rayBuffer.push(normal);
+    if (this.rayBuffer.length > this.filterLength) {
+      this.rayBuffer.shift();
+    }
+
+    let avgFx = 0;
+    let avgFy = 0;
+    let avgFz = 0;
+    for (const r of this.rayBuffer) {
+      avgFx += r.x;
+      avgFy += r.y;
+      avgFz += r.z;
+    }
+    const bLen = this.rayBuffer.length;
+    avgFx /= bLen;
+    avgFy /= bLen;
+    avgFz /= bLen;
+
+    // 1. Pitch: 3D normal Y elevation fused with vertical facial displacement
     const faceMidY = (forehead.y + chin.y) / 2;
     const faceHeight = Math.max(0.01, chin.y - forehead.y);
-    const rawPitch = ((nose.y - faceMidY) / faceHeight) * 70;
+    const displacementPitch = ((nose.y - faceMidY) / faceHeight) * 70;
+    const rayPitch = Math.asin(Math.max(-0.9, Math.min(0.9, avgFy))) * (180 / Math.PI);
+    const rawPitch = 0.65 * rayPitch + 0.35 * displacementPitch;
 
-    // 2. Yaw: horizontal displacement of nose relative to cheek midpoint
-    const faceMidX = (rightCheek.x + leftCheek.x) / 2;
-    const faceWidth = Math.max(0.01, Math.abs(leftCheek.x - rightCheek.x));
-    const rawYaw = ((nose.x - faceMidX) / faceWidth) * 90;
+    // 2. Yaw: 3D normal X deflection fused with nose horizontal offset
+    const faceMidX = (leftCheek.x + rightCheek.x) / 2;
+    const faceWidth = Math.max(0.01, Math.abs(rightCheek.x - leftCheek.x));
+    const displacementYaw = ((nose.x - faceMidX) / faceWidth) * 90;
+    const rayYaw = Math.asin(Math.max(-0.9, Math.min(0.9, -avgFx))) * (180 / Math.PI);
+    const rawYaw = 0.65 * rayYaw + 0.35 * displacementYaw;
 
     // 3. Roll: angle of cheek axis relative to horizon
-    const dX = leftCheek.x - rightCheek.x;
-    const dY = leftCheek.y - rightCheek.y;
+    const dX = rightCheek.x - leftCheek.x;
+    const dY = rightCheek.y - leftCheek.y;
     const rawRoll = Math.atan2(dY, dX) * (180 / Math.PI);
 
     // Apply temporal smoothing to prevent angle flicker
@@ -90,7 +145,8 @@ export class HeadPoseEstimator {
       yaw: yawDeg,
       roll: rollDeg,
       alignment,
-      distanceQuality
+      distanceQuality,
+      headRay: { x: avgFx, y: avgFy, z: avgFz }
     };
   }
 

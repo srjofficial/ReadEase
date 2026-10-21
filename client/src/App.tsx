@@ -21,19 +21,15 @@ import {
   BookOpen,
   Sliders,
   Award,
-  Brain,
   Play,
-  ArrowRight,
   TrendingUp,
   FileText,
   Check,
   Send,
   Layers,
-  ArrowLeft,
-  ChevronRight,
-  Users
+  ArrowLeft
 } from 'lucide-react';
-import { NotFoundPage, LoginPage, SignUpPage } from './pages';
+import { NotFoundPage, LoginPage, SignUpPage, HomePage } from './pages';
 import { ReadingPreferencesProvider } from './context/ReadingPreferencesContext';
 import { useLanguage } from './context/LanguageContext';
 import {
@@ -49,10 +45,23 @@ import {
   TeacherDashboardView,
   TeacherStudentsView,
   TeacherAnalyticsView,
-  TeacherAssignmentsView
+  TeacherAssignmentsView,
+  TeacherSettingsView
 } from './pages/teacher';
-import { SpecialEducatorDashboardView, EducatorStudentsView } from './pages/educator';
-import { ParentDashboardView, ParentReadingLogView } from './pages/parent';
+import {
+  SpecialEducatorDashboardView,
+  EducatorStudentsView,
+  EducatorDiagnosticsView,
+  EducatorPhonemicAnalysisView,
+  EducatorAccommodationsView
+} from './pages/educator';
+import {
+  ParentDashboardView,
+  ParentReadingLogView,
+  ParentAccommodationsView,
+  ParentCollaborationView
+} from './pages/parent';
+import { AdminConsoleView } from './pages/admin';
 
 export function App() {
   const navigate = useNavigate();
@@ -100,10 +109,6 @@ export function App() {
 
   const [isPreferencesModalOpen, setIsPreferencesModalOpen] = useState(false);
 
-  // Live Interactive Demo State on Landing Page
-  const [bionicActive, setBionicActive] = useState(true);
-  const [readingRulerActive, setReadingRulerActive] = useState(false);
-  const [fontScale, setFontScale] = useState<'normal' | 'large'>('normal');
 
   useEffect(() => {
     if (isDarkMode) {
@@ -250,7 +255,7 @@ export function App() {
       assignments: '/teacher/assignments',
       'student-reports': '/teacher/analytics',
       'lesson-plans': '/teacher/dashboard',
-      settings: '/teacher/dashboard'
+      settings: '/teacher/settings'
     };
     if (routeMap[id]) navigate(routeMap[id]);
   };
@@ -263,6 +268,8 @@ export function App() {
         return <TeacherAssignmentsView />;
       case 'student-reports':
         return <TeacherAnalyticsView />;
+      case 'settings':
+        return <TeacherSettingsView />;
       default:
         return (
           <TeacherDashboardView
@@ -304,9 +311,9 @@ export function App() {
     const routeMap: Record<string, string> = {
       dashboard: '/educator/dashboard',
       'iep-tracking': '/educator/students',
-      diagnostics: '/educator/dashboard',
-      'phoneme-analytics': '/educator/dashboard',
-      'custom-profiles': '/educator/students'
+      diagnostics: '/educator/diagnostics',
+      'phoneme-analytics': '/educator/phonemics',
+      'custom-profiles': '/educator/accommodations'
     };
     if (routeMap[id]) navigate(routeMap[id]);
   };
@@ -314,8 +321,13 @@ export function App() {
   const renderEducatorView = (navId = activeNavId) => {
     switch (navId) {
       case 'iep-tracking':
-      case 'custom-profiles':
         return <EducatorStudentsView />;
+      case 'diagnostics':
+        return <EducatorDiagnosticsView />;
+      case 'phoneme-analytics':
+        return <EducatorPhonemicAnalysisView />;
+      case 'custom-profiles':
+        return <EducatorAccommodationsView />;
       default:
         return (
           <SpecialEducatorDashboardView
@@ -357,8 +369,10 @@ export function App() {
     const routeMap: Record<string, string> = {
       dashboard: '/parent/dashboard',
       'reading-log': '/parent/reading-log',
-      presets: '/parent/dashboard',
-      'educator-notes': '/parent/dashboard'
+      presets: '/parent/accommodations',
+      accommodations: '/parent/accommodations',
+      'educator-notes': '/parent/collaboration',
+      collaboration: '/parent/collaboration'
     };
     if (routeMap[id]) navigate(routeMap[id]);
   };
@@ -367,6 +381,12 @@ export function App() {
     switch (navId) {
       case 'reading-log':
         return <ParentReadingLogView />;
+      case 'presets':
+      case 'accommodations':
+        return <ParentAccommodationsView />;
+      case 'educator-notes':
+      case 'collaboration':
+        return <ParentCollaborationView />;
       default:
         return (
           <ParentDashboardView
@@ -399,6 +419,48 @@ export function App() {
       }}
     >
       {renderParentView(navId)}
+    </AuthenticatedLayout>
+  );
+
+  // ─── Admin Portal Rendering ───────────────────────────────────────────
+  const handleAdminNavSelect = (id: string) => {
+    setActiveNavId(id);
+    const routeMap: Record<string, string> = {
+      dashboard: '/admin/dashboard',
+      users: '/admin/users',
+      'ai-pipeline': '/admin/ai-pipeline',
+      'rag-kb': '/admin/rag-kb',
+      'audit-logs': '/admin/audit-logs'
+    };
+    if (routeMap[id]) navigate(routeMap[id]);
+  };
+
+  const renderAdminView = (navId = activeNavId) => {
+    return <AdminConsoleView activeTab={navId} onNavigateTab={handleAdminNavSelect} />;
+  };
+
+  const renderAdminPage = (navId: string) => (
+    <AuthenticatedLayout
+      role="admin"
+      activeItemId={navId}
+      onItemSelect={handleAdminNavSelect}
+      pageTitle="Admin Console"
+      breadcrumbs={['ReadEase', 'admin', navId]}
+      topBarProps={{
+        currentLanguage: language,
+        onLanguageToggle: handleLanguageToggle,
+        isDarkMode,
+        onDarkModeToggle: handleDarkModeToggle,
+        onPreferencesClick: () => {}
+      }}
+      sidebarProps={{
+        userName: currentUser?.name || 'System Administrator',
+        userEmail: currentUser?.email || 'admin@readease.com',
+        onLogout: handleLogout,
+        onPrimaryAction: () => handleAdminNavSelect('dashboard')
+      }}
+    >
+      {renderAdminView(navId)}
     </AuthenticatedLayout>
   );
 
@@ -453,303 +515,7 @@ export function App() {
                   onSignUpClick: () => navigate('/signup')
                 }}
               >
-                <div className="max-w-container mx-auto px-6 py-12 md:py-20 space-y-20">
-                  {/* Hero Section */}
-                  <section className="text-center max-w-4xl mx-auto space-y-6">
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-primary-50 text-primary-container rounded-full text-label-md font-semibold border border-primary-200 shadow-soft animate-fade-in">
-                      <Sparkles size={16} className="text-secondary" />
-                      <span>Empowering Neurodivergent & Dyslexic Readers</span>
-                    </div>
-
-                    <h1 className="text-display-lg-mobile md:text-display-lg font-bold text-text-primary tracking-tight leading-tight">
-                      Reading Without Barriers. <br />
-                      <span className="text-primary">Confidence Without Friction.</span>
-                    </h1>
-
-                    <p className="text-body-xl text-text-secondary max-w-2xl mx-auto leading-relaxed">
-                      ReadEase transforms standard documents into dyslexia-friendly formats using AI
-                      fixation points, bilingual Malayalam/English phonemic breakdowns, and
-                      customizable visual rulers.
-                    </p>
-
-                    <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-                      <Button
-                        size="lg"
-                        variant="primary"
-                        iconRight={<ArrowRight size={18} />}
-                        onClick={() => {
-                          if (currentUser) {
-                            setActiveNavId('reading-studio');
-                            navigate('/student/reading-studio');
-                          } else {
-                            navigate('/signup');
-                          }
-                        }}
-                      >
-                        {currentUser
-                          ? 'Return to Reading Studio'
-                          : 'Experience Reading Studio Free'}
-                      </Button>
-                      <Button
-                        size="lg"
-                        variant="outline"
-                        iconLeft={<Sliders size={18} />}
-                        onClick={() => {
-                          if (currentUser) {
-                            setActiveNavId('preferences');
-                            navigate('/student/customizer');
-                          } else {
-                            navigate('/login');
-                          }
-                        }}
-                      >
-                        Customize Accommodations
-                      </Button>
-                    </div>
-                  </section>
-
-                  {/* Live Interactive Reading Simulator */}
-                  <section className="max-w-4xl mx-auto">
-                    <Card
-                      variant="highlight"
-                      padding="lg"
-                      className="border-2 border-primary/20 shadow-elevated"
-                    >
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-surface-border">
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <Badge variant="primary" dot>
-                              LIVE DEMO
-                            </Badge>
-                            <h3 className="text-headline-sm font-bold text-text-primary">
-                              Interactive Dyslexia Reader
-                            </h3>
-                          </div>
-                          <p className="text-body-sm text-text-secondary">
-                            Toggle assistive technologies below to feel the cognitive difference in
-                            real-time.
-                          </p>
-                        </div>
-
-                        {/* Simulator Controls */}
-                        <div className="flex flex-wrap items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setBionicActive(!bionicActive)}
-                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
-                              bionicActive
-                                ? 'bg-primary text-white border-primary shadow-soft'
-                                : 'bg-surface-lowest text-text-secondary border-surface-border hover:bg-surface-low'
-                            }`}
-                          >
-                            Bionic Fixation: {bionicActive ? 'ON' : 'OFF'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setReadingRulerActive(!readingRulerActive)}
-                            className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
-                              readingRulerActive
-                                ? 'bg-secondary text-primary-dark border-secondary shadow-soft'
-                                : 'bg-surface-lowest text-text-secondary border-surface-border hover:bg-surface-low'
-                            }`}
-                          >
-                            Reading Ruler: {readingRulerActive ? 'ACTIVE' : 'OFF'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setFontScale(fontScale === 'normal' ? 'large' : 'normal')
-                            }
-                            className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-surface-border bg-surface-lowest text-text-secondary hover:bg-surface-low transition-all"
-                          >
-                            Font: {fontScale === 'normal' ? 'Lexend (Default)' : 'Lexend (120%)'}
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Simulated Passage */}
-                      <div
-                        className={`mt-6 p-6 rounded-xl transition-all relative ${
-                          readingRulerActive
-                            ? 'bg-secondary-50/70 border-l-4 border-secondary shadow-inner'
-                            : 'bg-surface-lowest border border-surface-border'
-                        } ${fontScale === 'large' ? 'text-lg leading-loose' : 'text-base leading-relaxed'}`}
-                        style={{ fontFamily: 'Lexend, sans-serif' }}
-                      >
-                        {readingRulerActive && (
-                          <div className="absolute -top-3 right-4 px-2 py-0.5 bg-secondary text-primary-dark text-[0.68rem] font-bold rounded-full uppercase tracking-wider">
-                            Optical Focus Guide
-                          </div>
-                        )}
-
-                        <p className="text-text-primary">
-                          {bionicActive ? (
-                            <>
-                              <strong className="text-primary font-bold">Read</strong>Ease{' '}
-                              <strong className="text-primary font-bold">tra</strong>nsforms{' '}
-                              <strong className="text-primary font-bold">sta</strong>ndard{' '}
-                              <strong className="text-primary font-bold">tex</strong>t into{' '}
-                              <strong className="text-primary font-bold">dys</strong>lexia-friendly{' '}
-                              <strong className="text-primary font-bold">for</strong>mats. By{' '}
-                              <strong className="text-primary font-bold">gui</strong>ding your{' '}
-                              <strong className="text-primary font-bold">ey</strong>es with{' '}
-                              <strong className="text-primary font-bold">art</strong>ificial{' '}
-                              <strong className="text-primary font-bold">fix</strong>ation{' '}
-                              <strong className="text-primary font-bold">poi</strong>nts,{' '}
-                              <strong className="text-primary font-bold">cog</strong>nitive{' '}
-                              <strong className="text-primary font-bold">loa</strong>d is{' '}
-                              <strong className="text-primary font-bold">dra</strong>stically{' '}
-                              <strong className="text-primary font-bold">red</strong>uced,{' '}
-                              <strong className="text-primary font-bold">allo</strong>wing{' '}
-                              <strong className="text-primary font-bold">stud</strong>ents to{' '}
-                              <strong className="text-primary font-bold">com</strong>prehend{' '}
-                              <strong className="text-primary font-bold">fas</strong>ter and with{' '}
-                              <strong className="text-primary font-bold">dee</strong>per{' '}
-                              <strong className="text-primary font-bold">conf</strong>idence.
-                            </>
-                          ) : (
-                            <>
-                              ReadEase transforms standard text into dyslexia-friendly formats. By
-                              guiding your eyes with artificial fixation points, cognitive load is
-                              drastically reduced, allowing students to comprehend faster and with
-                              deeper confidence.
-                            </>
-                          )}
-                        </p>
-                      </div>
-                    </Card>
-                  </section>
-
-                  {/* Feature Cards Grid */}
-                  <section className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <Card variant="default">
-                      <CardHeader>
-                        <div className="w-12 h-12 rounded-xl bg-primary-50 text-primary-container flex items-center justify-center mb-2">
-                          <BookOpen size={24} />
-                        </div>
-                        <CardTitle>Bionic Reading Engine</CardTitle>
-                        <CardDescription>
-                          Artificial fixation highlights guide saccadic eye movements to minimize
-                          reading fatigue and regressions.
-                        </CardDescription>
-                      </CardHeader>
-                    </Card>
-
-                    <Card variant="default">
-                      <CardHeader>
-                        <div className="w-12 h-12 rounded-xl bg-secondary-50 text-secondary-dark flex items-center justify-center mb-2">
-                          <Sliders size={24} className="text-secondary" />
-                        </div>
-                        <CardTitle>Dyslexia Customizer</CardTitle>
-                        <CardDescription>
-                          Adjust typography, line spacing, low-glare cream tinting, and digital
-                          reading rulers in real-time.
-                        </CardDescription>
-                      </CardHeader>
-                    </Card>
-
-                    <Card variant="default">
-                      <CardHeader>
-                        <div className="w-12 h-12 rounded-xl bg-tertiary-50 text-tertiary-dark flex items-center justify-center mb-2">
-                          <Brain size={24} className="text-tertiary" />
-                        </div>
-                        <CardTitle>Bilingual AI Vision</CardTitle>
-                        <CardDescription>
-                          Scan textbooks and PDFs with automated Malayalam and English text
-                          segmentation and synchronized syllable TTS.
-                        </CardDescription>
-                      </CardHeader>
-                    </Card>
-                  </section>
-
-                  {/* Quick Role Exploration */}
-                  <section className="p-8 bg-surface-lowest border border-surface-border rounded-2xl space-y-6">
-                    <div className="text-center max-w-xl mx-auto space-y-2">
-                      <h2 className="text-headline-md font-bold text-text-primary">
-                        Designed for the Entire Learning Circle
-                      </h2>
-                      <p className="text-body-md text-text-secondary">
-                        Whether you are a student, classroom teacher, specialist, or parent,
-                        ReadEase gives you a dedicated workspace.
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                      {[
-                        {
-                          role: 'student' as UserRole,
-                          title: 'Student Studio',
-                          desc: 'Bionic reader, audio highlighting & reading rulers',
-                          icon: <BookOpen size={20} className="text-primary" />
-                        },
-                        {
-                          role: 'teacher' as UserRole,
-                          title: 'Teacher Portal',
-                          desc: 'Classroom roster, assignments & student tracking',
-                          icon: <Users size={20} className="text-secondary" />
-                        },
-                        {
-                          role: 'special-educator' as UserRole,
-                          title: 'Special Educator',
-                          desc: 'Clinical screening data, IEP plans & accommodations',
-                          icon: <Brain size={20} className="text-tertiary" />
-                        },
-                        {
-                          role: 'parent' as UserRole,
-                          title: 'Parent Dashboard',
-                          desc: 'Weekly milestones, home practice & growth charts',
-                          icon: <Award size={20} className="text-primary-container" />
-                        }
-                      ].map((item) => (
-                        <button
-                          key={item.role}
-                          type="button"
-                          onClick={() => {
-                            setActiveRole(item.role);
-                            navigate('/login');
-                          }}
-                          className="p-5 rounded-xl border border-surface-border bg-surface-low hover:bg-surface-lowest hover:border-primary-200 hover:shadow-soft transition-all text-left flex flex-col justify-between group"
-                        >
-                          <div className="space-y-2">
-                            <div className="p-2.5 w-fit rounded-lg bg-surface-lowest border border-surface-border shadow-soft group-hover:scale-105 transition-transform">
-                              {item.icon}
-                            </div>
-                            <h4 className="font-bold text-text-primary text-label-lg">
-                              {item.title}
-                            </h4>
-                            <p className="text-xs text-text-secondary leading-relaxed">
-                              {item.desc}
-                            </p>
-                          </div>
-                          <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-primary">
-                            <span>Explore Workspace</span>
-                            <ChevronRight size={14} />
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </section>
-
-                  {/* Subtle Developer/Design Resources in Footer Section */}
-                  <div className="text-center pt-8 border-t border-surface-border text-xs text-text-muted flex flex-wrap items-center justify-center gap-6">
-                    <span>Looking for platform assets?</span>
-                    <button
-                      type="button"
-                      onClick={() => navigate('/catalog')}
-                      className="text-primary hover:underline font-medium"
-                    >
-                      UI Component Catalog
-                    </button>
-                    <span>•</span>
-                    <button
-                      type="button"
-                      onClick={() => navigate('/404')}
-                      className="text-primary hover:underline font-medium"
-                    >
-                      404 Not Found Page
-                    </button>
-                  </div>
-                </div>
+                <HomePage currentUser={currentUser} onSelectRole={setActiveRole} />
               </PublicLayout>
             }
           />
@@ -802,7 +568,7 @@ export function App() {
                           <Badge variant="primary" dot>
                             {activeRole.toUpperCase().replace('-', ' ')} WORKSPACE ACTIVE
                           </Badge>
-                          <h2 className="text-display-lg-mobile font-bold text-text-primary">
+                          <h2 className="text-2xl sm:text-3xl font-editorial font-normal text-text-primary tracking-tight">
                             Welcome back, {currentUser?.name?.split(' ')[0] || 'User'}
                           </h2>
                           <p className="text-body-md text-text-secondary max-w-xl">
@@ -888,19 +654,40 @@ export function App() {
           {/* 2c. TEACHER PORTAL ROUTES */}
           <Route path="/teacher/dashboard" element={renderTeacherPage('dashboard')} />
           <Route path="/teacher/students" element={renderTeacherPage('roster')} />
+          <Route path="/teacher/roster" element={renderTeacherPage('roster')} />
           <Route path="/teacher/assignments" element={renderTeacherPage('assignments')} />
           <Route path="/teacher/analytics" element={renderTeacherPage('student-reports')} />
+          <Route path="/teacher/settings" element={renderTeacherPage('settings')} />
+          <Route path="/teacher/class-settings" element={renderTeacherPage('settings')} />
           <Route path="/teacher" element={renderTeacherPage('dashboard')} />
 
           {/* 2d. SPECIAL EDUCATOR PORTAL ROUTES */}
           <Route path="/educator/dashboard" element={renderEducatorPage('dashboard')} />
           <Route path="/educator/students" element={renderEducatorPage('iep-tracking')} />
+          <Route path="/educator/iep" element={renderEducatorPage('iep-tracking')} />
+          <Route path="/educator/diagnostics" element={renderEducatorPage('diagnostics')} />
+          <Route path="/educator/phonemics" element={renderEducatorPage('phoneme-analytics')} />
+          <Route path="/educator/phoneme-analytics" element={renderEducatorPage('phoneme-analytics')} />
+          <Route path="/educator/accommodations" element={renderEducatorPage('custom-profiles')} />
+          <Route path="/educator/custom-profiles" element={renderEducatorPage('custom-profiles')} />
           <Route path="/educator" element={renderEducatorPage('dashboard')} />
 
           {/* 2e. PARENT PORTAL ROUTES */}
           <Route path="/parent/dashboard" element={renderParentPage('dashboard')} />
           <Route path="/parent/reading-log" element={renderParentPage('reading-log')} />
+          <Route path="/parent/accommodations" element={renderParentPage('presets')} />
+          <Route path="/parent/presets" element={renderParentPage('presets')} />
+          <Route path="/parent/collaboration" element={renderParentPage('educator-notes')} />
+          <Route path="/parent/educator-notes" element={renderParentPage('educator-notes')} />
           <Route path="/parent" element={renderParentPage('dashboard')} />
+
+          {/* 2f. ADMIN PORTAL ROUTES */}
+          <Route path="/admin/dashboard" element={renderAdminPage('dashboard')} />
+          <Route path="/admin/users" element={renderAdminPage('users')} />
+          <Route path="/admin/ai-pipeline" element={renderAdminPage('ai-pipeline')} />
+          <Route path="/admin/rag-kb" element={renderAdminPage('rag-kb')} />
+          <Route path="/admin/audit-logs" element={renderAdminPage('audit-logs')} />
+          <Route path="/admin" element={renderAdminPage('dashboard')} />
 
           {/* 3. UI COMPONENT CATALOG */}
           <Route
@@ -914,7 +701,7 @@ export function App() {
                       <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary-50 text-primary-container rounded-full text-label-md font-semibold">
                         <Layers size={16} /> ReadEase Design System
                       </div>
-                      <h1 className="text-display-lg font-bold text-text-primary tracking-tight">
+                      <h1 className="text-3xl sm:text-4xl font-editorial font-normal text-text-primary tracking-tight">
                         UI Component Library
                       </h1>
                       <p className="text-body-md text-text-secondary">

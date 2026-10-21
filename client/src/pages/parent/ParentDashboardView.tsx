@@ -5,14 +5,14 @@ import {
   Award,
   TrendingUp,
   Activity,
-  Sparkles,
+  Target,
   ChevronRight,
   AlertCircle,
-  Clock
+  Clock,
+  MessageSquareText
 } from 'lucide-react';
 import { Button, Card, Badge } from '../../components/ui';
 import { AiChatbotDrawer } from '../../components/chat/AiChatbotDrawer';
-import { AnimatedBotIcon } from '../../components/chat/AnimatedBotIcon';
 
 interface ParentDashboardProps {
   userName?: string;
@@ -134,10 +134,10 @@ export const ParentDashboardView: React.FC<ParentDashboardProps> = ({
       <Card variant="highlight" padding="lg" className="border border-secondary/20">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-secondary-50 text-secondary-dark rounded-full text-xs font-bold uppercase tracking-wider">
-              <HeartHandshake size={14} /> Parent Companion
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-secondary-50 text-secondary-dark rounded-full text-xs font-bold uppercase tracking-wider border border-secondary/20">
+              <span className="w-2 h-2 rounded-full bg-secondary" /> Parent Companion
             </div>
-            <h1 className="text-display-lg-mobile md:text-display-lg font-bold text-text-primary">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-editorial font-normal text-text-primary tracking-tight">
               Hello, {userName}!
             </h1>
             <p className="text-body-md text-text-secondary max-w-xl">
@@ -189,7 +189,7 @@ export const ParentDashboardView: React.FC<ParentDashboardProps> = ({
             label: 'Accuracy',
             value: `${child.latestSession.accuracyPercentage}%`,
             sub: 'last session',
-            icon: <Sparkles size={18} className="text-secondary" />,
+            icon: <Target size={18} className="text-secondary" />,
             bg: 'bg-secondary-50'
           },
           {
@@ -317,14 +317,14 @@ export const ParentDashboardView: React.FC<ParentDashboardProps> = ({
         ))}
       </div>
 
-      {/* AI Buddy FAB */}
+      {/* AI Assistant Trigger */}
       <button
         type="button"
         onClick={() => setIsAiBuddyOpen(true)}
-        className="fixed bottom-6 right-6 z-40 w-14 h-14 bg-secondary rounded-2xl shadow-elevated flex items-center justify-center hover:scale-110 transition-transform"
+        className="fixed bottom-6 right-6 z-40 w-12 h-12 bg-secondary text-primary-dark rounded-xl shadow-soft flex items-center justify-center hover:opacity-95 active:scale-95 transition-all border border-secondary-dark/20"
         aria-label="Open AI Assistant"
       >
-        <AnimatedBotIcon size={28} className="text-primary-dark" />
+        <MessageSquareText size={20} className="text-primary-dark" />
       </button>
 
       <AiChatbotDrawer

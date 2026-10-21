@@ -19,6 +19,7 @@ export interface HeadPoseState {
   roll: number; // head tilt in degrees
   alignment: 'centered' | 'tilted_left' | 'tilted_right' | 'looking_down' | 'looking_up';
   distanceQuality: 'optimal' | 'too_close' | 'too_far';
+  headRay?: { x: number; y: number; z: number }; // JEOresearch 3D head normal vector
 }
 
 export interface EyeFeatures {

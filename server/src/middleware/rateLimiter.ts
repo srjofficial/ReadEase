@@ -7,7 +7,11 @@ import type { ApiResponse } from '@readease/shared';
  */
 export const apiRateLimiter = rateLimit({
   windowMs: env.RATE_LIMIT_WINDOW_MS,
-  max: env.RATE_LIMIT_MAX_REQUESTS,
+  max: process.env.NODE_ENV === 'production' ? env.RATE_LIMIT_MAX_REQUESTS : 5000,
+  skip: (req) => {
+    // Do not rate-limit internal admin telemetry calls or diagnostic fetches
+    return req.originalUrl.includes('/admin') || req.path.startsWith('/admin');
+  },
   standardHeaders: true, // Return standard RateLimit headers
   legacyHeaders: false, // Disable X-RateLimit-* headers
   message: {

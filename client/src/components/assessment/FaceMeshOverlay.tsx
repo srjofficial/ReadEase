@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Eye,
   Activity,
-  Sparkles,
+  Target,
   Compass,
   SunMedium,
   AlertTriangle,
@@ -622,7 +622,7 @@ export const FaceMeshOverlay: React.FC<FaceMeshOverlayProps> = ({
                     : 'bg-black/60 text-white/80 hover:text-white border border-white/10'
               }`}
             >
-              <span>🎯</span>
+              <Target size={11} className={isPinpointMode ? 'text-black' : 'text-teal-300'} />
               <span>
                 {isPinpointMode
                   ? 'Pinpointing...'
@@ -659,7 +659,7 @@ export const FaceMeshOverlay: React.FC<FaceMeshOverlayProps> = ({
       {/* Telemetry Strip below camera */}
       <div className="flex items-center justify-between gap-2 px-1 text-[11px] text-text-muted">
         <div className="flex items-center gap-1">
-          <Sparkles size={12} className="text-secondary" />
+          <Eye size={12} className="text-secondary" />
           <span>
             Conf:{' '}
             <strong className="text-text-primary font-mono">{Math.round(confidence * 100)}%</strong>

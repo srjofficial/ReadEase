@@ -17,6 +17,20 @@ export interface IStudentPreferences {
   syllableBreakdown: boolean;
 }
 
+export interface IClinicalAssessment {
+  status: 'confirmed_dyslexia' | 'no_dyslexia' | 'borderline_at_risk' | 'unassessed';
+  standardizedTool?: string;
+  evaluationDate?: Date;
+  diagnosingClinician?: string;
+  clinicalNotes?: string;
+  standardizedScores?: {
+    phonemicDecoding?: number;
+    sightWordEfficiency?: number;
+    readingFluencyIndex?: number;
+    rapidNamingPercentile?: number;
+  };
+}
+
 export interface IStudentProfile extends Document {
   userId: Types.ObjectId;
   teacherId?: Types.ObjectId;
@@ -28,6 +42,7 @@ export interface IStudentProfile extends Document {
   preferences: IStudentPreferences;
   totalSessionsCompleted: number;
   totalReadingTimeMinutes: number;
+  clinicalAssessment?: IClinicalAssessment;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -112,6 +127,23 @@ const studentProfileSchema = new Schema<IStudentProfile>(
       type: Number,
       default: 0,
       min: 0
+    },
+    clinicalAssessment: {
+      status: {
+        type: String,
+        enum: ['confirmed_dyslexia', 'no_dyslexia', 'borderline_at_risk', 'unassessed'],
+        default: 'unassessed'
+      },
+      standardizedTool: { type: String, default: 'TOWRE-2 & GORT-5 Diagnostic Evaluation' },
+      evaluationDate: { type: Date },
+      diagnosingClinician: { type: String },
+      clinicalNotes: { type: String },
+      standardizedScores: {
+        phonemicDecoding: { type: Number },
+        sightWordEfficiency: { type: Number },
+        readingFluencyIndex: { type: Number },
+        rapidNamingPercentile: { type: Number }
+      }
     }
   },
   {

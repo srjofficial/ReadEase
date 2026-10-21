@@ -33,7 +33,7 @@ export const NINE_POINT_TARGETS: CalibrationTarget[] = [
   { id: 'bottom-right', label: '9 of 9: Bottom-Right', targetX: 0.84, targetY: 0.82 }
 ];
 
-const STORAGE_KEY = 'readease_eye_calibration';
+const STORAGE_KEY = 'readease_eye_calibration_v2';
 
 export class CalibrationEngine {
   private samples: CalibrationSample[] = [];

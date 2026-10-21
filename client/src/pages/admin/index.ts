@@ -1,0 +1,1 @@
+export { AdminConsoleView } from './AdminConsoleView';

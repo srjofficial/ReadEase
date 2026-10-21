@@ -8,7 +8,7 @@ import {
   Pause,
   RotateCcw,
   FastForward,
-  Sparkles,
+  Eye,
   Sliders,
   Maximize2,
   Volume2,
@@ -351,7 +351,7 @@ export const ReadingStudioView: React.FC<ReadingStudioViewProps> = ({
                       : 'bg-surface-low text-text-secondary border border-surface-border'
                   }`}
                 >
-                  <Sparkles size={14} />
+                  <Eye size={14} />
                   {preferences.bionicReadingEnabled ? 'Bionic Active' : 'Standard Text'}
                 </button>
                 {preferences.bionicReadingEnabled && (
@@ -570,12 +570,12 @@ export const ReadingStudioView: React.FC<ReadingStudioViewProps> = ({
       <Modal
         isOpen={isMilestoneModalOpen}
         onClose={() => setIsMilestoneModalOpen(false)}
-        title="Reading Session Completed! 🎉"
+        title="Reading Session Completed"
         description="Great work maintaining focus. You've earned daily practice credit!"
       >
         <div className="space-y-6 text-center">
-          <div className="w-20 h-20 rounded-full bg-secondary-50 text-secondary border-4 border-secondary-200 mx-auto flex items-center justify-center shadow-soft animate-bounce">
-            <Award size={40} />
+          <div className="w-16 h-16 rounded-2xl bg-secondary-50 text-secondary border border-secondary-200 mx-auto flex items-center justify-center shadow-soft">
+            <Award size={32} />
           </div>
 
           <div className="grid grid-cols-3 gap-3 p-4 bg-surface-low rounded-xl border border-surface-border">

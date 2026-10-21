@@ -8,7 +8,6 @@ import {
   Type,
   Eye,
   Volume2,
-  Sparkles,
   Maximize2,
   RotateCcw,
   Save,
@@ -139,7 +138,7 @@ export const ReadingCustomizerView: React.FC<ReadingCustomizerViewProps> = ({ on
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary-50 text-primary-container rounded-full text-xs font-bold uppercase tracking-wider mb-2 border border-primary-200">
             <SlidersHorizontal size={14} /> Cognitive Accommodations
           </div>
-          <h1 className="text-display-lg-mobile md:text-headline-md font-bold text-text-primary">
+          <h1 className="text-2xl sm:text-3xl font-editorial font-normal text-text-primary tracking-tight">
             Reading Customizer
           </h1>
           <p className="text-body-md text-text-secondary">
@@ -347,7 +346,7 @@ export const ReadingCustomizerView: React.FC<ReadingCustomizerViewProps> = ({ on
             <div className="space-y-3 p-4 bg-surface-low rounded-2xl border border-surface-border">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <Sparkles size={18} className="text-primary" />
+                  <Eye size={18} className="text-primary" />
                   <div>
                     <h4 className="font-bold text-text-primary text-xs">Bionic Reading Engine</h4>
                     <p className="text-[11px] text-text-muted">Bolds initial fixation letters</p>
@@ -511,7 +510,7 @@ export const ReadingCustomizerView: React.FC<ReadingCustomizerViewProps> = ({ on
                     { id: 'tutor', icon: GraduationCap },
                     { id: 'storyteller', icon: BookOpen },
                     { id: 'calm', icon: Smile },
-                    { id: 'academic', icon: Sparkles }
+                    { id: 'academic', icon: Languages }
                   ] as const
                 ).map(({ id, icon: IconComponent }) => {
                   const cfg = TTSEngine.PERSONA_CONFIG[id];

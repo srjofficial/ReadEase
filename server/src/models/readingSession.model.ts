@@ -20,6 +20,12 @@ export interface IReadingSession extends Document {
   accuracyPercentage: number;
   riskLevel: RiskLevel;
   disclaimer: string;
+  voiceWpm?: number;
+  voiceFluencyScore?: number;
+  hesitationCount?: number;
+  phonologicalRiskScore?: number;
+  dyslexiaProbability?: number;
+  eyeGazeProbability?: number;
   rawGazeDataSummary?: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
@@ -101,6 +107,34 @@ const readingSessionSchema = new Schema<IReadingSession>(
       type: String,
       required: true,
       default: 'Screening aid only, not a clinical diagnosis'
+    },
+    voiceWpm: {
+      type: Number,
+      min: 0
+    },
+    voiceFluencyScore: {
+      type: Number,
+      min: 0,
+      max: 100
+    },
+    hesitationCount: {
+      type: Number,
+      min: 0
+    },
+    phonologicalRiskScore: {
+      type: Number,
+      min: 0,
+      max: 100
+    },
+    dyslexiaProbability: {
+      type: Number,
+      min: 0,
+      max: 100
+    },
+    eyeGazeProbability: {
+      type: Number,
+      min: 0,
+      max: 100
     },
     rawGazeDataSummary: {
       type: Schema.Types.Mixed

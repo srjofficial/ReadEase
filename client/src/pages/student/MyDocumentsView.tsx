@@ -12,7 +12,6 @@ import {
   Search,
   Trash2,
   Clock,
-  Sparkles,
   ArrowRight,
   Volume2,
   Square,
@@ -248,7 +247,7 @@ export const MyDocumentsView: React.FC<MyDocumentsViewProps> = ({ onOpenDocument
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary-50 text-primary-container rounded-full text-xs font-bold uppercase tracking-wider mb-2 border border-primary-200">
             <FolderKanban size={14} /> {t('documents.tag', 'Personal Learning Library')}
           </div>
-          <h1 className="text-display-lg-mobile md:text-headline-md font-bold text-text-primary">
+          <h1 className="text-2xl sm:text-3xl font-editorial font-normal text-text-primary tracking-tight">
             {t('documents.title', 'My Documents & Readings')}
           </h1>
           <p className="text-body-md text-text-secondary">
@@ -749,7 +748,7 @@ export const MyDocumentsView: React.FC<MyDocumentsViewProps> = ({ onOpenDocument
             <Button variant="ghost" type="button" onClick={() => setIsUploadModalOpen(false)}>
               {t('common.cancel', 'Cancel')}
             </Button>
-            <Button variant="primary" type="submit" iconLeft={<Sparkles size={16} />}>
+            <Button variant="primary" type="submit" iconLeft={<Plus size={16} />}>
               Process & Add to Library
             </Button>
           </div>

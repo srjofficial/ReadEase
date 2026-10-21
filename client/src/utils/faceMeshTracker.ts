@@ -234,6 +234,7 @@ export class FaceMeshTracker {
   // Voice Analysis & Audio Capture
   private recognition: ISpeechRecognition | null = null;
   private voiceTranscripts: string[] = [];
+  private latestInterimText = '';
   private voiceStartTime = 0;
   private voiceHesitationCount = 0;
   private voiceIsListening = false;
@@ -481,26 +482,23 @@ export class FaceMeshTracker {
     const verticalRatio = (ratioYRight + ratioYLeft) / 2;
 
     if (!this.hasInitializedBaseline) {
-      this.baselinePupilX = horizontalRatio;
-      this.baselinePupilY = verticalRatio;
+      this.baselinePupilX = Math.max(0.44, Math.min(0.56, horizontalRatio));
+      this.baselinePupilY = Math.max(0.42, Math.min(0.54, verticalRatio));
       this.hasInitializedBaseline = true;
-    } else {
-      // Slow baseline adaptation to posture changes
-      this.baselinePupilX = 0.996 * this.baselinePupilX + 0.004 * horizontalRatio;
-      this.baselinePupilY = 0.996 * this.baselinePupilY + 0.004 * verticalRatio;
     }
+    // Note: Do NOT decay baseline toward active gaze while reading to prevent gaze collapsing to center
 
     const deltaX = horizontalRatio - this.baselinePupilX;
     const deltaY = verticalRatio - this.baselinePupilY;
 
-    // High gain ocular sensitivity so natural reading eye movements span the screen
+    // Calibrated ocular sensitivity tuned for reading passage sweep
     const gainMult = this.gazeSensitivity / 2.8;
-    const GAIN_X = 5.6 * gainMult;
-    const GAIN_Y = 4.2 * gainMult;
+    const GAIN_X = 4.6 * gainMult;
+    const GAIN_Y = 3.6 * gainMult;
 
-    // 85% ocular eye movement + 15% subtle natural head pose assistance
-    let screenX = 0.5 + deltaX * GAIN_X + (yawDeg / 50) * 0.14;
-    let screenY = 0.48 + deltaY * GAIN_Y + (pitchDeg / 40) * 0.1;
+    // Negate horizontal ocular delta and yaw for front-facing webcam mirroring (left is left, right is right)
+    let screenX = 0.5 - deltaX * GAIN_X - (yawDeg / 36) * 0.20;
+    let screenY = 0.48 + deltaY * GAIN_Y + (pitchDeg / 28) * 0.16;
 
     // Apply 5-point calibration if active
     if (this.calibration.isCalibrated) {
@@ -738,10 +736,11 @@ export class FaceMeshTracker {
 
       // Sensitivity amplification multiplier
       const gainMultiplier = this.gazeSensitivity / 2.8;
-      const GAIN_X = 3.8 * gainMultiplier;
-      const GAIN_Y = 3.2 * gainMultiplier;
+      const GAIN_X = 6.8 * gainMultiplier;
+      const GAIN_Y = 5.2 * gainMultiplier;
 
-      let screenX = 0.5 + deltaX * GAIN_X;
+      // In front-facing webcam, looking left moves pupils to camera right; negate deltaX
+      let screenX = 0.5 - deltaX * GAIN_X;
       let screenY = 0.48 + deltaY * GAIN_Y;
 
       // Apply 5-point calibration if student completed calibration
@@ -1112,15 +1111,15 @@ export class FaceMeshTracker {
     const hesitationPatterns = /\b(um|uh|er|hmm|ah|like|you know)\b/gi;
 
     this.recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let finalText = '';
       let interimText = '';
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const res = event.results[i];
         if (res.isFinal) {
           const text = res[0].transcript.trim();
-          finalText += text + ' ';
-          this.voiceTranscripts.push(text);
+          if (text) {
+            this.voiceTranscripts.push(text);
+          }
 
           // Count hesitation words
           const hesitations = text.match(hesitationPatterns);
@@ -1130,13 +1129,15 @@ export class FaceMeshTracker {
         }
       }
 
-      // Ensure partial result is dispatched for both final & interim speech
-      const activeText = (finalText + ' ' + interimText).trim();
-      if (activeText && onPartialResult) {
-        onPartialResult(activeText);
+      this.latestInterimText = interimText.trim();
+
+      // Ensure full cumulative spoken transcript across all phrases is dispatched
+      const fullAccumulated = (this.voiceTranscripts.join(' ') + ' ' + this.latestInterimText).trim();
+      if (fullAccumulated && onPartialResult) {
+        onPartialResult(fullAccumulated);
       }
 
-      if (finalText && onFinalResult) {
+      if (onFinalResult) {
         onFinalResult(this.getVoiceAnalysisResult());
       }
     };
@@ -1197,7 +1198,14 @@ export class FaceMeshTracker {
   }
 
   public getVoiceAnalysisResult(): VoiceAnalysisResult {
-    const fullTranscript = this.voiceTranscripts.join(' ').trim();
+    const list = [...this.voiceTranscripts];
+    if (this.latestInterimText) {
+      const lastFinal = list.length > 0 ? list[list.length - 1] : '';
+      if (!lastFinal.endsWith(this.latestInterimText)) {
+        list.push(this.latestInterimText);
+      }
+    }
+    const fullTranscript = list.join(' ').trim();
     const wordCount = fullTranscript.split(/\s+/).filter(Boolean).length;
     const elapsedMin = Math.max(0.01, (performance.now() - this.voiceStartTime) / 60000);
     const wpmEstimate = Math.round(wordCount / elapsedMin);

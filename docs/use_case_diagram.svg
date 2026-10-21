@@ -1,0 +1,339 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1120" width="100%" height="100%" style="background-color: #0f172a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Lexend', sans-serif;">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="boxGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.95" />
+    </linearGradient>
+    <linearGradient id="studentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+    <linearGradient id="teacherGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+    <linearGradient id="educatorGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#6d28d9" />
+    </linearGradient>
+    <linearGradient id="parentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#b45309" />
+    </linearGradient>
+    <linearGradient id="adminGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ec4899" />
+      <stop offset="100%" stop-color="#be185d" />
+    </linearGradient>
+    <linearGradient id="commonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#334155" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+
+    <!-- Filters -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.35" />
+    </filter>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <!-- Markers -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#94a3b8" />
+    </marker>
+    <marker id="arrowInclude" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#38bdf8" />
+    </marker>
+    <marker id="arrowExtend" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#a78bfa" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="url(#bgGrad)" />
+
+  <!-- Grid Pattern -->
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#334155" stroke-width="0.5" stroke-opacity="0.3" />
+  </pattern>
+  <rect width="100%" height="100%" fill="url(#grid)" />
+
+  <!-- Header -->
+  <g transform="translate(800, 50)" text-anchor="middle">
+    <text font-size="28" font-weight="800" fill="#f8fafc" letter-spacing="1.5">READEASE PLATFORM • UML USE CASE DIAGRAM</text>
+    <text y="28" font-size="14" fill="#94a3b8" font-weight="500">Comprehensive Role-Based Interactions, Assistive Capabilities &amp; System Workflows</text>
+  </g>
+
+  <!-- System Boundary Box -->
+  <rect x="290" y="100" width="1020" height="970" rx="16" fill="url(#boxGrad)" stroke="#38bdf8" stroke-width="2" stroke-dasharray="6,4" filter="url(#shadow)" />
+  <rect x="290" y="100" width="1020" height="42" rx="16" fill="#1e293b" stroke="#38bdf8" stroke-width="2" />
+  <text x="800" y="128" text-anchor="middle" font-size="15" font-weight="700" fill="#38bdf8" letter-spacing="1">SYSTEM BOUNDARY: READEASE ASSISTIVE LEARNING CORE</text>
+
+  <!-- ================= ACTORS (LEFT SIDE) ================= -->
+
+  <!-- ACTOR 1: Student -->
+  <g transform="translate(130, 220)">
+    <!-- Stick figure -->
+    <circle cx="0" cy="0" r="18" fill="#1e293b" stroke="#60a5fa" stroke-width="3" filter="url(#shadow)" />
+    <path d="M 0 18 L 0 58 M -22 32 L 22 32 M 0 58 L -18 95 M 0 58 L 18 95" stroke="#60a5fa" stroke-width="3" stroke-linecap="round" />
+    <!-- Actor Label -->
+    <rect x="-65" y="105" width="130" height="30" rx="6" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5" />
+    <text x="0" y="125" text-anchor="middle" font-size="13" font-weight="700" fill="#93c5fd">STUDENT</text>
+    <text x="0" y="148" text-anchor="middle" font-size="11" fill="#64748b">Primary Learner</text>
+  </g>
+
+  <!-- ACTOR 2: Teacher -->
+  <g transform="translate(130, 520)">
+    <!-- Stick figure -->
+    <circle cx="0" cy="0" r="18" fill="#1e293b" stroke="#34d399" stroke-width="3" filter="url(#shadow)" />
+    <path d="M 0 18 L 0 58 M -22 32 L 22 32 M 0 58 L -18 95 M 0 58 L 18 95" stroke="#34d399" stroke-width="3" stroke-linecap="round" />
+    <!-- Actor Label -->
+    <rect x="-65" y="105" width="130" height="30" rx="6" fill="#1e293b" stroke="#10b981" stroke-width="1.5" />
+    <text x="0" y="125" text-anchor="middle" font-size="13" font-weight="700" fill="#6ee7b7">TEACHER</text>
+    <text x="0" y="148" text-anchor="middle" font-size="11" fill="#64748b">Classroom Instructor</text>
+  </g>
+
+  <!-- ACTOR 3: Special Educator -->
+  <g transform="translate(130, 820)">
+    <!-- Stick figure -->
+    <circle cx="0" cy="0" r="18" fill="#1e293b" stroke="#a78bfa" stroke-width="3" filter="url(#shadow)" />
+    <path d="M 0 18 L 0 58 M -22 32 L 22 32 M 0 58 L -18 95 M 0 58 L 18 95" stroke="#a78bfa" stroke-width="3" stroke-linecap="round" />
+    <!-- Actor Label -->
+    <rect x="-80" y="105" width="160" height="30" rx="6" fill="#1e293b" stroke="#8b5cf6" stroke-width="1.5" />
+    <text x="0" y="125" text-anchor="middle" font-size="13" font-weight="700" fill="#c4b5fd">SPECIAL EDUCATOR</text>
+    <text x="0" y="148" text-anchor="middle" font-size="11" fill="#64748b">IEP &amp; Remedial Specialist</text>
+  </g>
+
+  <!-- ================= ACTORS (RIGHT SIDE) ================= -->
+
+  <!-- ACTOR 4: Parent -->
+  <g transform="translate(1470, 360)">
+    <!-- Stick figure -->
+    <circle cx="0" cy="0" r="18" fill="#1e293b" stroke="#fbbf24" stroke-width="3" filter="url(#shadow)" />
+    <path d="M 0 18 L 0 58 M -22 32 L 22 32 M 0 58 L -18 95 M 0 58 L 18 95" stroke="#fbbf24" stroke-width="3" stroke-linecap="round" />
+    <!-- Actor Label -->
+    <rect x="-65" y="105" width="130" height="30" rx="6" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5" />
+    <text x="0" y="125" text-anchor="middle" font-size="13" font-weight="700" fill="#fde68a">PARENT</text>
+    <text x="0" y="148" text-anchor="middle" font-size="11" fill="#64748b">Home Reading Partner</text>
+  </g>
+
+  <!-- ACTOR 5: System Admin & AI Services -->
+  <g transform="translate(1470, 750)">
+    <!-- Stick figure / System -->
+    <circle cx="0" cy="0" r="18" fill="#1e293b" stroke="#f472b6" stroke-width="3" filter="url(#shadow)" />
+    <path d="M 0 18 L 0 58 M -22 32 L 22 32 M 0 58 L -18 95 M 0 58 L 18 95" stroke="#f472b6" stroke-width="3" stroke-linecap="round" />
+    <!-- Actor Label -->
+    <rect x="-85" y="105" width="170" height="30" rx="6" fill="#1e293b" stroke="#ec4899" stroke-width="1.5" />
+    <text x="0" y="125" text-anchor="middle" font-size="13" font-weight="700" fill="#fbcfe8">ADMIN / AI ENGINE</text>
+    <text x="0" y="148" text-anchor="middle" font-size="11" fill="#64748b">FastAPI / Auth / OCR System</text>
+  </g>
+
+  <!-- ================= USE CASES (OVALS) ================= -->
+
+  <!-- --- ROW 1: Common / Auth --- -->
+  <g id="uc-auth" transform="translate(800, 185)">
+    <ellipse cx="0" cy="0" rx="140" ry="24" fill="url(#commonGrad)" stroke="#64748b" stroke-width="1.5" filter="url(#shadow)" />
+    <text x="0" y="4" text-anchor="middle" font-size="12" font-weight="600" fill="#f1f5f9">Sign In &amp; Role-Based Access (RBAC)</text>
+  </g>
+
+  <!-- --- ROW 2: Student Primary Reading Actions --- -->
+  <g id="uc-bionic" transform="translate(480, 260)">
+    <ellipse cx="0" cy="0" rx="155" ry="26" fill="url(#studentGrad)" stroke="#93c5fd" stroke-width="1.5" filter="url(#shadow)" />
+    <text x="0" y="-3" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">Read in Reading Studio</text>
+    <text x="0" y="13" text-anchor="middle" font-size="10" fill="#dbeafe">Bionic Fixation, Lexend/Dyslexic Fonts</text>
+  </g>
+
+  <g id="uc-ruler" transform="translate(800, 260)">
+    <ellipse cx="0" cy="0" rx="130" ry="24" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="4,3" />
+    <text x="0" y="-2" text-anchor="middle" font-size="11" font-weight="600" fill="#bae6fd">Use Reading Ruler</text>
+    <text x="0" y="12" text-anchor="middle" font-size="9" fill="#7dd3fc">&amp; Focus Overlays</text>
+  </g>
+
+  <g id="uc-tts" transform="translate(1120, 260)">
+    <ellipse cx="0" cy="0" rx="145" ry="26" fill="#1e293b" stroke="#f472b6" stroke-width="1.5" filter="url(#shadow)" />
+    <text x="0" y="-3" text-anchor="middle" font-size="11" font-weight="600" fill="#fbcfe8">Bilingual Audio &amp; Syllabification</text>
+    <text x="0" y="12" text-anchor="middle" font-size="9" fill="#f472b6">Synchronized TTS (English / Malayalam)</text>
+  </g>
+
+  <!-- --- ROW 3: Student Gamification & Assessments --- -->
+  <g id="uc-assess" transform="translate(480, 360)">
+    <ellipse cx="0" cy="0" rx="155" ry="26" fill="url(#studentGrad)" stroke="#93c5fd" stroke-width="1.5" filter="url(#shadow)" />
+    <text x="0" y="-3" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">Take Reading Assessments</text>
+    <text x="0" y="13" text-anchor="middle" font-size="10" fill="#dbeafe">Speed (WPM) &amp; Comprehension Quizzes</text>
+  </g>
+
+  <g id="uc-badges" transform="translate(800, 360)">
+    <ellipse cx="0" cy="0" rx="135" ry="24" fill="url(#studentGrad)" stroke="#93c5fd" stroke-width="1.5" filter="url(#shadow)" />
+    <text x="0" y="-2" text-anchor="middle" font-size="11" font-weight="600" fill="#ffffff">Earn Badges &amp; Daily Streaks</text>
+    <text x="0" y="12" text-anchor="middle" font-size="9" fill="#dbeafe">Stamina Milestones &amp; Motivation</text>
+  </g>
+
+  <g id="uc-customizer" transform="translate(1120, 360)">
+    <ellipse cx="0" cy="0" rx="140" ry="24" fill="#1e293b" stroke="#60a5fa" stroke-width="1.5" />
+    <text x="0" y="-2" text-anchor="middle" font-size="11" font-weight="600" fill="#bfdbfe">Customize Preferences</text>
+    <text x="0" y="12" text-anchor="middle" font-size="9" fill="#93c5fd">Line spacing, contrast, font weight</text>
+  </g>
+
+  <!-- --- ROW 4: Teacher & Classroom Use Cases --- -->
+  <g id="uc-roster" transform="translate(480, 500)">
+    <ellipse cx="0" cy="0" rx="150" ry="26" fill="url(#teacherGrad)" stroke="#6ee7b7" stroke-width="1.5" filter="url(#shadow)" />
+    <text x="0" y="-3" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">Manage Class Roster</text>
+    <text x="0" y="13" text-anchor="middle" font-size="10" fill="#a7f3d0">Student Enrollment &amp; Cohort Groups</text>
+  </g>
+
+  <g id="uc-assign" transform="translate(800, 500)">
+    <ellipse cx="0" cy="0" rx="145" ry="26" fill="url(#teacherGrad)" stroke="#6ee7b7" stroke-width="1.5" filter="url(#shadow)" />
+    <text x="0" y="-3" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">Create &amp; Distribute Assignments</text>
+    <text x="0" y="13" text-anchor="middle" font-size="10" fill="#a7f3d0">Reading Passages, Due Dates, Targets</text>
+  </g>
+
+  <g id="uc-analytics" transform="translate(1120, 500)">
+    <ellipse cx="0" cy="0" rx="145" ry="26" fill="url(#teacherGrad)" stroke="#6ee7b7" stroke-width="1.5" filter="url(#shadow)" />
+    <text x="0" y="-3" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">Monitor Class Analytics</text>
+    <text x="0" y="13" text-anchor="middle" font-size="10" fill="#a7f3d0">WPM Trends &amp; Fluency Comparisons</text>
+  </g>
+
+  <!-- --- ROW 5: Special Educator / Clinical Suite --- -->
+  <g id="uc-caseload" transform="translate(480, 670)">
+    <ellipse cx="0" cy="0" rx="150" ry="26" fill="url(#educatorGrad)" stroke="#c4b5fd" stroke-width="1.5" filter="url(#shadow)" />
+    <text x="0" y="-3" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">Manage Assigned Caseload</text>
+    <text x="0" y="13" text-anchor="middle" font-size="10" fill="#ede9fe">1-on-1 Neurodivergent Profiles</text>
+  </g>
+
+  <g id="uc-iep" transform="translate(800, 670)">
+    <ellipse cx="0" cy="0" rx="150" ry="26" fill="url(#educatorGrad)" stroke="#c4b5fd" stroke-width="1.5" filter="url(#shadow)" />
+    <text x="0" y="-3" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">Configure IEP Accommodations</text>
+    <text x="0" y="13" text-anchor="middle" font-size="10" fill="#ede9fe">Custom Fixation, Rulers, Audio Pacing</text>
+  </g>
+
+  <g id="uc-notes" transform="translate(1120, 670)">
+    <ellipse cx="0" cy="0" rx="145" ry="26" fill="url(#educatorGrad)" stroke="#c4b5fd" stroke-width="1.5" filter="url(#shadow)" />
+    <text x="0" y="-3" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">Record Clinical Screening Notes</text>
+    <text x="0" y="13" text-anchor="middle" font-size="10" fill="#ede9fe">Phonological Observations &amp; Progress</text>
+  </g>
+
+  <!-- --- ROW 6: Parent Monitoring & Collaboration --- -->
+  <g id="uc-parent-prog" transform="translate(800, 810)">
+    <ellipse cx="0" cy="0" rx="150" ry="26" fill="url(#parentGrad)" stroke="#fde68a" stroke-width="1.5" filter="url(#shadow)" />
+    <text x="0" y="-3" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">View Child Reading Progress</text>
+    <text x="0" y="13" text-anchor="middle" font-size="10" fill="#fef3c7">Weekly Minutes, WPM &amp; Streaks</text>
+  </g>
+
+  <g id="uc-home-log" transform="translate(1120, 810)">
+    <ellipse cx="0" cy="0" rx="145" ry="26" fill="url(#parentGrad)" stroke="#fde68a" stroke-width="1.5" filter="url(#shadow)" />
+    <text x="0" y="-3" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">Submit Home Reading Log</text>
+    <text x="0" y="13" text-anchor="middle" font-size="10" fill="#fef3c7">Offline Books, Sign-off &amp; Reflections</text>
+  </g>
+
+  <!-- --- ROW 7: Admin / System Core Services --- -->
+  <g id="uc-ocr" transform="translate(800, 940)">
+    <ellipse cx="0" cy="0" rx="150" ry="26" fill="url(#adminGrad)" stroke="#fbcfe8" stroke-width="1.5" filter="url(#shadow)" />
+    <text x="0" y="-3" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">Process Document Ingestion &amp; OCR</text>
+    <text x="0" y="13" text-anchor="middle" font-size="10" fill="#fce7f3">Tesseract OCR, PDF Text &amp; Tokenization</text>
+  </g>
+
+  <g id="uc-ai-nlp" transform="translate(1120, 940)">
+    <ellipse cx="0" cy="0" rx="145" ry="26" fill="url(#adminGrad)" stroke="#fbcfe8" stroke-width="1.5" filter="url(#shadow)" />
+    <text x="0" y="-3" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">AI Assist &amp; Chatbot Assistant</text>
+    <text x="0" y="13" text-anchor="middle" font-size="10" fill="#fce7f3">Contextual Q&amp;A &amp; Vocabulary Support</text>
+  </g>
+
+
+  <!-- ================= ASSOCIATIONS & CONNECTORS ================= -->
+
+  <!-- Student Links (Solid Blue) -->
+  <path d="M 180 230 L 660 190" stroke="#3b82f6" stroke-width="2" opacity="0.6" />
+  <path d="M 180 240 L 325 260" stroke="#3b82f6" stroke-width="2.5" />
+  <path d="M 180 255 L 325 360" stroke="#3b82f6" stroke-width="2.5" />
+  <path d="M 180 270 L 665 360" stroke="#3b82f6" stroke-width="2.5" />
+
+  <!-- Teacher Links (Solid Emerald) -->
+  <path d="M 180 530 L 660 195" stroke="#10b981" stroke-width="2" opacity="0.6" />
+  <path d="M 180 540 L 330 500" stroke="#10b981" stroke-width="2.5" />
+  <path d="M 180 550 L 655 500" stroke="#10b981" stroke-width="2.5" />
+  <path d="M 180 560 L 975 500" stroke="#10b981" stroke-width="2.5" />
+
+  <!-- Special Educator Links (Solid Purple) -->
+  <path d="M 180 830 L 660 200" stroke="#8b5cf6" stroke-width="2" opacity="0.6" />
+  <path d="M 180 835 L 330 670" stroke="#8b5cf6" stroke-width="2.5" />
+  <path d="M 180 845 L 650 670" stroke="#8b5cf6" stroke-width="2.5" />
+  <path d="M 180 855 L 975 670" stroke="#8b5cf6" stroke-width="2.5" />
+
+  <!-- Parent Links (Solid Amber - From Right) -->
+  <path d="M 1420 370 L 940 190" stroke="#f59e0b" stroke-width="2" opacity="0.6" />
+  <path d="M 1420 380 L 950 810" stroke="#f59e0b" stroke-width="2.5" />
+  <path d="M 1420 395 L 1265 810" stroke="#f59e0b" stroke-width="2.5" />
+  <path d="M 1420 410 L 935 365" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="4,4" />
+
+  <!-- System / Admin Links (Solid Pink - From Right) -->
+  <path d="M 1400 760 L 940 200" stroke="#ec4899" stroke-width="2" opacity="0.6" />
+  <path d="M 1400 770 L 950 940" stroke="#ec4899" stroke-width="2.5" />
+  <path d="M 1400 780 L 1265 940" stroke="#ec4899" stroke-width="2.5" />
+  <path d="M 1400 750 L 1265 260" stroke="#ec4899" stroke-width="2.5" />
+
+  <!-- ================= <<include>> & <<extend>> RELATIONSHIPS ================= -->
+
+  <!-- Read in Studio <<include>> Bionic Preferences -->
+  <path d="M 635 260 L 670 260" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4,3" marker-end="url(#arrowInclude)" />
+  <rect x="635" y="240" width="60" height="16" rx="4" fill="#0f172a" />
+  <text x="665" y="252" text-anchor="middle" font-size="9" fill="#38bdf8" font-weight="600">&lt;&lt;extend&gt;&gt;</text>
+
+  <!-- Read in Studio <<include>> Bilingual Audio / TTS -->
+  <path d="M 930 260 L 975 260" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4,3" marker-end="url(#arrowInclude)" />
+  <rect x="930" y="240" width="65" height="16" rx="4" fill="#0f172a" />
+  <text x="962" y="252" text-anchor="middle" font-size="9" fill="#38bdf8" font-weight="600">&lt;&lt;include&gt;&gt;</text>
+
+  <!-- Take Reading Assessments <<include>> Earn Badges -->
+  <path d="M 635 360 L 665 360" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4,3" marker-end="url(#arrowInclude)" />
+  <rect x="632" y="340" width="65" height="16" rx="4" fill="#0f172a" />
+  <text x="664" y="352" text-anchor="middle" font-size="9" fill="#38bdf8" font-weight="600">&lt;&lt;include&gt;&gt;</text>
+
+  <!-- Assignments <<extend>> Analytics -->
+  <path d="M 630 500 L 655 500" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4,3" marker-end="url(#arrowInclude)" />
+  <rect x="625" y="480" width="65" height="16" rx="4" fill="#0f172a" />
+  <text x="657" y="492" text-anchor="middle" font-size="9" fill="#38bdf8" font-weight="600">&lt;&lt;include&gt;&gt;</text>
+
+  <!-- Special Educator IEP <<extend>> Student Customizer -->
+  <path d="M 800 644 L 800 384" stroke="#a78bfa" stroke-width="2" stroke-dasharray="4,3" marker-end="url(#arrowExtend)" />
+  <rect x="765" y="565" width="70" height="18" rx="4" fill="#0f172a" stroke="#8b5cf6" stroke-width="1" />
+  <text x="800" y="578" text-anchor="middle" font-size="9" fill="#c4b5fd" font-weight="700">&lt;&lt;applies to&gt;&gt;</text>
+
+  <!-- Student Reading Progress <<extend>> Parent Monitoring -->
+  <path d="M 570 386 L 730 786" stroke="#fbbf24" stroke-width="1.8" stroke-dasharray="4,3" marker-end="url(#arrowExtend)" />
+  <rect x="620" y="580" width="65" height="18" rx="4" fill="#0f172a" stroke="#f59e0b" stroke-width="1" />
+  <text x="652" y="593" text-anchor="middle" font-size="9" fill="#fde68a" font-weight="600">&lt;&lt;feeds into&gt;&gt;</text>
+
+  <!-- Document OCR <<include>> AI NLP -->
+  <path d="M 950 940 L 975 940" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4,3" marker-end="url(#arrowInclude)" />
+  <rect x="945" y="920" width="65" height="16" rx="4" fill="#0f172a" />
+  <text x="977" y="932" text-anchor="middle" font-size="9" fill="#38bdf8" font-weight="600">&lt;&lt;include&gt;&gt;</text>
+
+  <!-- ================= LEGEND & FOOTER ================= -->
+  <g transform="translate(310, 1020)">
+    <rect x="0" y="0" width="980" height="40" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1" />
+    <!-- Legend items -->
+    <circle cx="25" cy="20" r="6" fill="#3b82f6" />
+    <text x="38" y="24" font-size="11" fill="#cbd5e1">Student Actor</text>
+
+    <circle cx="160" cy="20" r="6" fill="#10b981" />
+    <text x="173" y="24" font-size="11" fill="#cbd5e1">Teacher Actor</text>
+
+    <circle cx="295" cy="20" r="6" fill="#8b5cf6" />
+    <text x="308" y="24" font-size="11" fill="#cbd5e1">Special Educator Actor</text>
+
+    <circle cx="485" cy="20" r="6" fill="#f59e0b" />
+    <text x="498" y="24" font-size="11" fill="#cbd5e1">Parent Actor</text>
+
+    <circle cx="615" cy="20" r="6" fill="#ec4899" />
+    <text x="628" y="24" font-size="11" fill="#cbd5e1">Admin/AI Service</text>
+
+    <line x1="755" y1="20" x2="785" y2="20" stroke="#38bdf8" stroke-width="2" stroke-dasharray="3,2" />
+    <text x="793" y="24" font-size="11" fill="#38bdf8">&lt;&lt;include&gt;&gt; / &lt;&lt;extend&gt;&gt;</text>
+  </g>
+</svg>

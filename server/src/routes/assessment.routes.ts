@@ -55,7 +55,12 @@ router.post('/screen-dyslexia', async (req: Request, res: Response) => {
       reading_time_sec,
       saccade_lengths,
       wpm,
-      age
+      age,
+      voice_wpm,
+      voice_fluency_score,
+      voice_hesitation_count,
+      voice_transcript,
+      accuracy_percentage
     } = req.body;
 
     const result = await AssessmentService.screenDyslexia({
@@ -67,7 +72,12 @@ router.post('/screen-dyslexia', async (req: Request, res: Response) => {
       reading_time_sec: reading_time_sec || 60,
       saccade_lengths,
       wpm,
-      age
+      age,
+      voice_wpm,
+      voice_fluency_score,
+      voice_hesitation_count,
+      voice_transcript,
+      accuracy_percentage
     });
 
     res.status(200).json({
@@ -79,6 +89,28 @@ router.post('/screen-dyslexia', async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       error: { message: 'Failed to complete dyslexia screening' }
+    });
+  }
+});
+
+/**
+ * GET /api/v1/assessment/student/:studentId/longitudinal
+ * Aggregate longitudinal multi-session telemetry across past reading trials
+ */
+router.get('/student/:studentId/longitudinal', async (req: Request, res: Response) => {
+  try {
+    const { studentId } = req.params;
+    const aggregate = await AssessmentService.getMultiSessionAggregate(studentId);
+
+    res.status(200).json({
+      success: true,
+      data: aggregate
+    });
+  } catch (error) {
+    logger.error({ err: error }, 'Error in /student/:studentId/longitudinal endpoint');
+    res.status(500).json({
+      success: false,
+      error: { message: 'Failed to retrieve longitudinal multi-session aggregate' }
     });
   }
 });

@@ -6,14 +6,14 @@ import {
   Activity,
   Plus,
   ChevronRight,
-  Sparkles,
+  Info,
   BarChart2,
   UserCheck,
-  AlertCircle
+  SlidersHorizontal,
+  MessageSquareText
 } from 'lucide-react';
 import { Button, Card, Badge } from '../../components/ui';
 import { AiChatbotDrawer } from '../../components/chat/AiChatbotDrawer';
-import { AnimatedBotIcon } from '../../components/chat/AnimatedBotIcon';
 
 interface TeacherDashboardViewProps {
   userName?: string;
@@ -24,25 +24,48 @@ import { getStoredToken } from '../../utils/auth';
 
 const API_BASE = '/api/v1';
 
+const DEMO_DASHBOARD_DATA = {
+  studentCount: 14,
+  maxStudents: 20,
+  capacityPercent: 70,
+  weeklyStats: { avgWpm: 118, totalSessions: 42 },
+  recentSessions: [
+    {
+      _id: 's1',
+      studentId: { name: 'Alex Student', email: 'alex@readease.edu' },
+      readingSpeedWpm: 124,
+      createdAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString()
+    },
+    {
+      _id: 's2',
+      studentId: { name: 'Maya Sharma', email: 'maya@readease.edu' },
+      readingSpeedWpm: 110,
+      createdAt: new Date(Date.now() - 5 * 3600 * 1000).toISOString()
+    },
+    {
+      _id: 's3',
+      studentId: { name: 'Liam Chen', email: 'liam@readease.edu' },
+      readingSpeedWpm: 132,
+      createdAt: new Date(Date.now() - 24 * 3600 * 1000).toISOString()
+    },
+    {
+      _id: 's4',
+      studentId: { name: 'Sophia Patel', email: 'sophia@readease.edu' },
+      readingSpeedWpm: 105,
+      createdAt: new Date(Date.now() - 28 * 3600 * 1000).toISOString()
+    }
+  ]
+};
+
 function useTeacherDashboard() {
-  const [data, setData] = useState<{
-    studentCount: number;
-    maxStudents: number;
-    capacityPercent: number;
-    weeklyStats: { avgWpm: number; totalSessions: number };
-    recentSessions: Array<{
-      _id: string;
-      studentId: { name?: string; email?: string } | string;
-      readingSpeedWpm: number;
-      createdAt: string;
-    }>;
-  } | null>(null);
+  const [data, setData] = useState<typeof DEMO_DASHBOARD_DATA | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const token = getStoredToken();
     if (!token) {
+      setData(DEMO_DASHBOARD_DATA);
       setLoading(false);
       return;
     }
@@ -52,10 +75,16 @@ function useTeacherDashboard() {
     })
       .then((r) => r.json())
       .then((d) => {
-        if (d.success) setData(d.data);
-        else setError(d.message || 'Failed to load dashboard');
+        if (d.success && d.data) {
+          setData(d.data);
+        } else {
+          setData(DEMO_DASHBOARD_DATA);
+          setError(d.message || null);
+        }
       })
-      .catch(() => setError('Could not reach server'))
+      .catch(() => {
+        setData(DEMO_DASHBOARD_DATA);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -110,10 +139,10 @@ export const TeacherDashboardView: React.FC<TeacherDashboardViewProps> = ({
       <Card variant="highlight" padding="lg" className="border border-primary-200">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary-50 text-primary-container rounded-full text-xs font-bold uppercase tracking-wider">
-              <Sparkles size={14} className="text-secondary" /> Educator Portal
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary-50 text-primary-container rounded-full text-xs font-bold uppercase tracking-wider border border-primary/20">
+              <span className="w-2 h-2 rounded-full bg-tertiary" /> Educator Portal
             </div>
-            <h1 className="text-display-lg-mobile md:text-display-lg font-bold text-text-primary">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-editorial font-normal text-text-primary tracking-tight">
               Welcome, {userName}!
             </h1>
             <p className="text-body-md text-text-secondary max-w-xl">
@@ -142,11 +171,13 @@ export const TeacherDashboardView: React.FC<TeacherDashboardViewProps> = ({
         </div>
       </Card>
 
-      {/* Error */}
+      {/* Offline / Development mode note */}
       {error && (
-        <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
-          <AlertCircle size={18} />
-          <p className="text-sm font-medium">{error} — showing demo data below.</p>
+        <div className="flex items-center gap-3 p-3.5 bg-amber-50/80 border border-amber-200 rounded-2xl text-amber-800 text-xs font-medium">
+          <Info size={16} className="text-amber-600 flex-shrink-0" />
+          <p>
+            Development Mode: Showing simulated classroom cohort data.
+          </p>
         </div>
       )}
 
@@ -261,7 +292,7 @@ export const TeacherDashboardView: React.FC<TeacherDashboardViewProps> = ({
       </Card>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           {
             id: 'roster',
@@ -280,6 +311,12 @@ export const TeacherDashboardView: React.FC<TeacherDashboardViewProps> = ({
             label: 'Class Analytics',
             icon: <BarChart2 size={20} className="text-tertiary" />,
             desc: 'Fluency trends and reports'
+          },
+          {
+            id: 'settings',
+            label: 'Class Settings',
+            icon: <SlidersHorizontal size={20} className="text-primary" />,
+            desc: 'Accommodations & benchmarks'
           }
         ].map((item) => (
           <button
@@ -303,14 +340,14 @@ export const TeacherDashboardView: React.FC<TeacherDashboardViewProps> = ({
         ))}
       </div>
 
-      {/* AI Buddy */}
+      {/* AI Assistant */}
       <button
         type="button"
         onClick={() => setIsAiBuddyOpen(true)}
-        className="fixed bottom-6 right-6 z-40 w-14 h-14 bg-primary rounded-2xl shadow-elevated flex items-center justify-center hover:scale-110 transition-transform"
+        className="fixed bottom-6 right-6 z-40 w-12 h-12 bg-primary text-white rounded-xl shadow-soft flex items-center justify-center hover:bg-primary-hover active:scale-95 transition-all border border-primary/20"
         aria-label="Open AI Assistant"
       >
-        <AnimatedBotIcon size={28} className="text-white" />
+        <MessageSquareText size={20} className="text-white" />
       </button>
 
       <AiChatbotDrawer

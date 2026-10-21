@@ -129,11 +129,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     >
       <div className="space-y-6 pt-2">
         <div className="flex justify-center -mt-1 mb-2">
-          <img
-            src="/ReadEase_wordmark_transparent.svg"
-            alt="ReadEase"
-            className="h-8 w-auto object-contain"
-          />
+          <div className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#10204d] to-[#1a3275] border border-[#2b449b]/40 shadow-soft inline-flex items-center">
+            <img
+              src="/ReadEase_wordmark_transparent.svg"
+              alt="ReadEase"
+              className="h-7 md:h-8 w-auto object-contain"
+            />
+          </div>
         </div>
 
         {/* Mode Toggle (Login vs Sign Up) */}

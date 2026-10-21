@@ -133,7 +133,7 @@ export const AchievementsBadgesView: React.FC = () => {
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-secondary-50 text-secondary-dark rounded-full text-xs font-bold uppercase tracking-wider mb-2 border border-secondary-200">
             <Award size={14} className="text-secondary" /> Student Milestones & Growth
           </div>
-          <h1 className="text-display-lg-mobile md:text-display-lg font-bold text-text-primary">
+          <h1 className="text-2xl sm:text-3xl font-editorial font-normal text-text-primary tracking-tight">
             Your Progress
           </h1>
           <p className="text-body-xl text-text-secondary">
@@ -159,7 +159,7 @@ export const AchievementsBadgesView: React.FC = () => {
         <div className="lg:col-span-8 bg-surface-lowest rounded-3xl p-8 shadow-soft border border-surface-border flex flex-col justify-between">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
             <div>
-              <h2 className="text-headline-md font-bold text-text-primary">Reading Speed Growth</h2>
+              <h2 className="text-xl font-editorial font-normal text-text-primary">Reading Speed Growth</h2>
               <p className="text-body-md text-text-secondary">
                 Words Per Minute (WPM) over the last 30 days.
               </p>
@@ -250,7 +250,7 @@ export const AchievementsBadgesView: React.FC = () => {
             <div className="w-16 h-16 rounded-full bg-secondary-container text-secondary-onContainer flex items-center justify-center mb-4 shadow-soft">
               <Flame size={32} className="animate-pulse" />
             </div>
-            <h2 className="text-display-lg-mobile font-bold text-text-primary">7 Day Streak!</h2>
+            <h2 className="text-xl font-editorial font-normal text-text-primary">7 Day Streak!</h2>
             <p className="text-body-md text-text-secondary mt-1">
               You're on a roll. Daily consistency builds automaticity!
             </p>
@@ -268,7 +268,7 @@ export const AchievementsBadgesView: React.FC = () => {
                       isComplete
                         ? 'bg-tertiary text-white shadow-soft'
                         : isToday
-                          ? 'border-2 border-secondary bg-secondary-50 text-secondary-dark animate-bounce'
+                          ? 'border-2 border-secondary bg-secondary-50 text-secondary-dark ring-2 ring-secondary/30'
                           : 'bg-surface-low border border-surface-border text-text-muted'
                     }`}
                   >
@@ -291,7 +291,7 @@ export const AchievementsBadgesView: React.FC = () => {
         <div className="md:col-span-6 bg-surface-lowest rounded-3xl p-8 shadow-soft border border-surface-border flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-headline-md font-bold text-text-primary">Focus & Stability</h2>
+              <h2 className="text-xl font-editorial font-normal text-text-primary">Focus & Stability</h2>
               <Badge variant="tertiary" dot>
                 Optimal Rhythm
               </Badge>
@@ -348,7 +348,7 @@ export const AchievementsBadgesView: React.FC = () => {
           {/* Minutes Read Bar Chart */}
           <div className="bg-surface-lowest rounded-3xl p-6 shadow-soft border border-surface-border flex-1 flex flex-col justify-between">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-headline-sm text-text-primary">
+              <h3 className="text-lg font-editorial font-normal text-text-primary">
                 Minutes Read This Week
               </h3>
               <span className="text-xs text-text-muted font-medium">Daily Goal: 20 mins</span>
@@ -419,7 +419,7 @@ export const AchievementsBadgesView: React.FC = () => {
       <div className="bg-surface-lowest rounded-3xl p-8 shadow-soft border border-surface-border space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-headline-md font-bold text-text-primary">Badges & Achievements</h2>
+            <h2 className="text-xl font-editorial font-normal text-text-primary">Badges & Achievements</h2>
             <p className="text-body-md text-text-secondary">
               Earned through consistent practice, eye-tracking stamina, and bilingual exploration.
             </p>

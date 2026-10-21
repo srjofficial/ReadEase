@@ -289,18 +289,20 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onLoginSuccess }) => {
           <div className="text-center space-y-2">
             <div className="flex justify-center mb-1">
               <Link to="/" aria-label="ReadEase Home">
-                <img
-                  src="/ReadEase_wordmark_transparent.svg"
-                  alt="ReadEase"
-                  className="h-10 md:h-11 w-auto object-contain hover:opacity-90 transition-opacity"
-                />
+                <div className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#10204d] to-[#1a3275] border border-[#2b449b]/40 shadow-soft hover:shadow-md transition-all inline-flex items-center">
+                  <img
+                    src="/ReadEase_wordmark_transparent.svg"
+                    alt="ReadEase"
+                    className="h-9 md:h-10 w-auto object-contain hover:opacity-95 transition-opacity"
+                  />
+                </div>
               </Link>
             </div>
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-secondary-50 text-secondary-container rounded-full text-xs font-bold uppercase tracking-wider border border-secondary-200">
               <UserPlus size={13} />
               {language === 'ML' ? 'പുതിയ അക്കൗണ്ട് രജിസ്ട്രേഷൻ' : 'Join ReadEase Platform'}
             </div>
-            <h1 className="text-display-lg-mobile md:text-headline-md font-bold text-text-primary">
+            <h1 className="text-2xl sm:text-3xl font-editorial font-normal text-text-primary tracking-tight">
               {language === 'ML' ? 'റീഡ്ഈസ് അക്കൗണ്ട് ഉണ്ടാക്കുക' : 'Create your ReadEase account'}
             </h1>
             <p className="text-body-md text-text-secondary">

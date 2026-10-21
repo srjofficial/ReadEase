@@ -101,11 +101,11 @@ export class OneEuroFilter2D {
 
   constructor(config: OneEuroConfig = {}) {
     // Configured for screen eye tracking:
-    // minCutoff = 1.1 Hz provides rock-solid fixation stability
-    // beta = 0.009 allows immediate snap during reading saccades
+    // minCutoff = 0.85 Hz provides steady, smooth fixation without jumping
+    // beta = 0.004 allows smooth progressive traversal during reading
     const tunedConfig: OneEuroConfig = {
-      minCutoff: config.minCutoff ?? 1.1,
-      beta: config.beta ?? 0.009,
+      minCutoff: config.minCutoff ?? 0.85,
+      beta: config.beta ?? 0.004,
       dCutoff: config.dCutoff ?? 1.0
     };
     this.filterX = new OneEuroFilter1D(tunedConfig);

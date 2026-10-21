@@ -18,6 +18,7 @@
     "build:client": "npm run build --workspace=client",
     "build:server": "npm run build --workspace=server",
     "test": "npm run test --workspaces --if-present",
+    "translate": "npm run translate --workspace=client",
     "db:test": "npm run db:test --workspace=server",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

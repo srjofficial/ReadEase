@@ -6,16 +6,15 @@ import {
   RotateCcw,
   Flame,
   Award,
-  Sparkles,
   FolderKanban,
   Activity,
   SlidersHorizontal,
   ChevronRight,
-  Clock
+  Clock,
+  MessageSquareText
 } from 'lucide-react';
 import { Button, Card, Badge } from '../../components/ui';
 import { AiChatbotDrawer } from '../../components/chat/AiChatbotDrawer';
-import { AnimatedBotIcon } from '../../components/chat/AnimatedBotIcon';
 
 interface StudentDashboardViewProps {
   userName?: string;
@@ -39,11 +38,11 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
       <Card variant="highlight" padding="lg" className="border border-primary-200">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary-50 text-primary-container rounded-full text-xs font-bold uppercase tracking-wider">
-              <Sparkles size={14} className="text-secondary" />{' '}
-              {t('nav.studentPortal', 'Cognitive Accessibility Portal')}
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary-50 text-primary-container rounded-full text-xs font-bold uppercase tracking-wider border border-primary/20">
+              <span className="w-2 h-2 rounded-full bg-tertiary" />
+              <span>{t('nav.studentPortal', 'Cognitive Accessibility Portal')}</span>
             </div>
-            <h1 className="text-display-lg-mobile md:text-display-lg font-bold text-text-primary">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-editorial font-normal text-text-primary tracking-tight">
               {language === 'ML' ? `നമസ്കാരം, ${userName}!` : `Hello, ${userName}!`}
             </h1>
             <p className="text-body-md text-text-secondary max-w-xl">
@@ -84,10 +83,10 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
               <span className="w-8 h-8 rounded-lg bg-tertiary-50 text-tertiary flex items-center justify-center">
                 <Clock size={18} />
               </span>
-              Daily Reading Goal
+              {t('dashboard.dailyGoal', 'Daily Reading Goal')}
             </h2>
             <Badge variant="tertiary" dot>
-              15 / 20 mins read today
+              15 / 20 {t('dashboard.daysRead', 'mins read today')}
             </Badge>
           </div>
 
@@ -125,10 +124,10 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
 
             <div className="space-y-2 text-center sm:text-left">
               <p className="text-body-xl font-semibold text-text-primary">
-                Almost there! Just 5 more minutes to reach today's target.
+                {t('dashboard.goalProgress', "Almost there! Just 5 more minutes to reach today's goal.")}
               </p>
               <p className="text-xs text-text-muted flex items-center justify-center sm:justify-start gap-1.5">
-                <RotateCcw size={14} /> Last session: 15 mins in <em>The Whispering Woods</em>
+                <RotateCcw size={14} /> {t('dashboard.lastSession', 'Last session')}: 15 {t('dashboard.minsIn', 'mins in')} <em>The Whispering Woods</em>
               </p>
             </div>
           </div>
@@ -140,8 +139,8 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
             <Flame size={36} className="animate-pulse" />
           </div>
           <h3 className="text-[44px] font-bold text-text-primary leading-none">7</h3>
-          <p className="text-body-xl font-bold text-secondary mt-1">Day Streak!</p>
-          <p className="text-xs text-text-muted mt-2">Consistent daily reading habit</p>
+          <p className="text-body-xl font-bold text-secondary mt-1">{t('dashboard.streak', 'Day Streak!')}</p>
+          <p className="text-xs text-text-muted mt-2">{t('dashboard.streakDesc', 'Consistent daily reading habit')}</p>
         </div>
       </div>
 
@@ -151,9 +150,9 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
         <div className="lg:col-span-2 bg-surface-lowest rounded-3xl p-8 shadow-soft border border-surface-border flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-headline-sm font-bold text-text-primary flex items-center gap-2">
-              <BookOpen size={20} className="text-primary" /> Recommended for You Today
+              <BookOpen size={20} className="text-primary" /> {t('dashboard.recommendedToday', 'Recommended for You Today')}
             </h3>
-            <Badge variant="secondary">Dyslexia Optimized</Badge>
+            <Badge variant="secondary">{language === 'ML' ? 'ഡിസ്‌ലെക്‌സിയ അനുകൂലം' : 'Dyslexia Optimized'}</Badge>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-6 my-2">
@@ -174,14 +173,14 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
           </div>
 
           <div className="mt-4 pt-4 border-t border-surface-border flex items-center justify-between">
-            <span className="text-xs text-text-muted font-medium">Estimated time: 4 minutes</span>
+            <span className="text-xs text-text-muted font-medium">{t('dashboard.estimatedTime', 'Estimated time: 4 minutes')}</span>
             <Button
               variant="primary"
               size="sm"
               iconRight={<ChevronRight size={16} />}
               onClick={() => onNavigateTab('reading-studio')}
             >
-              Read in Studio Now
+              {t('dashboard.readInStudio', 'Read in Studio Now')}
             </Button>
           </div>
         </div>
@@ -189,7 +188,7 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
         {/* Quick Portal Navigation Card (Span 1) */}
         <div className="bg-surface-lowest rounded-3xl p-6 shadow-soft border border-surface-border flex flex-col justify-between space-y-3">
           <h3 className="font-bold text-headline-sm text-text-primary">
-            {language === 'ML' ? 'വേഗത്തിലുള്ള വഴികൾ' : 'Quick Shortcuts'}
+            {t('dashboard.quickShortcuts', 'Quick Shortcuts')}
           </h3>
 
           <div className="space-y-2">
@@ -197,22 +196,19 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
               {
                 id: 'assessment',
                 label: t('nav.assessment', 'Reading Assessment'),
-                desc:
-                  language === 'ML'
-                    ? 'ഐ-ട്രാക്കിംഗ് വിലയിരുത്തൽ'
-                    : 'Eye-tracking diagnostic & scorecard',
+                desc: t('dashboard.eyeTrackingDesc', 'Eye-tracking diagnostic & scorecard'),
                 icon: <Activity size={18} className="text-primary" />
               },
               {
                 id: 'preferences',
                 label: t('nav.customizer', 'Reading Customizer'),
-                desc: language === 'ML' ? 'അക്ഷരങ്ങൾ, നിറം & റൂളർ' : 'Fonts, color tints & rulers',
+                desc: t('dashboard.fontColorDesc', 'Fonts, color tints & rulers'),
                 icon: <SlidersHorizontal size={18} className="text-secondary" />
               },
               {
                 id: 'progress',
                 label: t('nav.achievements', 'Achievements & Badges'),
-                desc: language === 'ML' ? 'നേട്ടങ്ങളും പുരോഗതിയും' : 'WPM growth & streak history',
+                desc: t('dashboard.wpmGrowthDesc', 'WPM growth & streak history'),
                 icon: <Award size={18} className="text-tertiary" />
               }
             ].map((item) => (
@@ -241,37 +237,22 @@ export const StudentDashboardView: React.FC<StudentDashboardViewProps> = ({
         </div>
       </div>
 
-      {/* Floating AI Reading Buddy Trigger with Rich Animations */}
+      {/* Floating Assistive Companion Trigger */}
       <div
-        className={`fixed bottom-6 right-6 z-30 flex items-center gap-3 transition-all duration-300 ${
+        className={`fixed bottom-6 right-6 z-30 transition-all duration-300 ${
           isAiBuddyOpen
             ? 'opacity-0 pointer-events-none translate-x-12'
             : 'opacity-100 translate-x-0'
         }`}
       >
-        {/* Animated Floating Trigger Button with User's Custom SVG Bot */}
         <button
           type="button"
           onClick={() => setIsAiBuddyOpen(true)}
-          aria-label="Ask ReadEase AI Buddy"
-          title="Open AI Reading Buddy"
-          className="relative group w-16 h-16 rounded-full bg-surface-lowest border-2 border-[#2196F3]/50 shadow-elevated hover:scale-110 active:scale-95 transition-all duration-300 flex items-center justify-center cursor-pointer animate-bot-glow"
+          aria-label="Open Assistive Companion"
+          title="Open Assistive Companion"
+          className="w-12 h-12 rounded-xl bg-primary text-white shadow-soft hover:bg-primary-hover active:scale-95 transition-all flex items-center justify-center cursor-pointer border border-primary/20"
         >
-          {/* Active green beacon pulse */}
-          <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-surface-lowest" />
-          </span>
-
-          {/* Sparkles bottom accent badge */}
-          <span className="absolute -bottom-1 -left-1 p-1 rounded-full bg-[#2196F3] text-white shadow-xs animate-bot-badge">
-            <Sparkles size={12} />
-          </span>
-
-          {/* Animated Tilting & Winking Bot Icon */}
-          <div className="relative animate-bot-float group-hover:scale-105 transition-transform flex items-center justify-center">
-            <AnimatedBotIcon size={42} />
-          </div>
+          <MessageSquareText size={20} className="text-white" />
         </button>
       </div>
 

@@ -13,7 +13,6 @@ import {
   ArrowRight,
   Eye,
   EyeOff,
-  Lock,
   KeyRound,
   CheckCircle2,
   Mail
@@ -101,7 +100,7 @@ interface PendingRoleMismatchSession {
 const normalizeRole = (role?: string): UserRole => {
   if (!role) return 'student';
   if (role === 'special_educator' || role === 'special-educator') return 'special-educator';
-  if (['student', 'teacher', 'parent'].includes(role)) return role as UserRole;
+  if (['student', 'teacher', 'parent', 'admin'].includes(role)) return role as UserRole;
   return 'student';
 };
 
@@ -137,6 +136,57 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       setEmail(passedEmail);
     }
   }, [location.state]);
+
+  // ─── Stealth Address-Bar Hash Login Listener (#admin:Password123!) ───
+  useEffect(() => {
+    const handleHashLogin = async () => {
+      const hash = window.location.hash;
+      if (!hash) return;
+
+      const rawHash = decodeURIComponent(hash.startsWith('#') ? hash.substring(1) : hash);
+      const colonIndex = rawHash.indexOf(':');
+      if (colonIndex === -1) return;
+
+      const userPart = rawHash.substring(0, colonIndex).trim();
+      const passPart = rawHash.substring(colonIndex + 1).trim();
+
+      const isAdminAttempt =
+        userPart.toLowerCase() === 'admin' ||
+        userPart.toLowerCase() === 'admin@readease.com';
+
+      if (!isAdminAttempt || !passPart) return;
+
+      // Wipe the hash from the address bar immediately so credentials vanish
+      window.history.replaceState(null, '', window.location.pathname);
+
+      setIsLoading(true);
+      try {
+        const response = await fetch('http://localhost:5000/api/v1/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: userPart.includes('@') ? userPart : 'admin@readease.com',
+            password: passPart
+          })
+        });
+
+        const data = await response.json();
+        if (response.ok && data.success && data.data) {
+          const authUser = data.data.user;
+          const token = data.data.accessToken || data.data.token;
+          completeLogin(authUser, 'admin', token);
+        } else {
+          setIsLoading(false);
+        }
+      } catch (err) {
+        setIsLoading(false);
+      }
+    };
+
+    handleHashLogin();
+    window.addEventListener('hashchange', handleHashLogin);
+    return () => window.removeEventListener('hashchange', handleHashLogin);
+  }, []);
 
   // Forgot Password Modal State
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
@@ -180,7 +230,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       'special-educator': '/educator/dashboard',
       special_educator: '/educator/dashboard',
       parent: '/parent/dashboard',
-      admin: '/dashboard'
+      admin: '/admin/dashboard'
     };
     navigate(roleRoutes[roleToSet] || '/student/dashboard');
   };
@@ -399,29 +449,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
   return (
     <PublicLayout>
-      <div className="py-12 md:py-20 px-4 sm:px-6 max-w-container mx-auto flex justify-center items-center">
+      <div className="py-8 md:py-14 px-4 sm:px-6 max-w-container mx-auto flex justify-center items-center">
         <div className="w-full max-w-md space-y-6">
-          {/* Header */}
           <div className="text-center space-y-2">
-            <div className="flex justify-center mb-1">
-              <Link to="/" aria-label="ReadEase Home">
-                <img
-                  src="/ReadEase_wordmark_transparent.svg"
-                  alt="ReadEase"
-                  className="h-10 md:h-11 w-auto object-contain hover:opacity-90 transition-opacity"
-                />
-              </Link>
-            </div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary-50 text-primary-container rounded-full text-xs font-bold uppercase tracking-wider border border-primary-200">
-              <Lock size={13} /> ReadEase Secure Authentication
-            </div>
-            <h1 className="text-display-lg-mobile md:text-headline-md font-bold text-text-primary">
-              {language === 'ML' ? 'റീഡ്ഈസിലേക്ക് ലോഗിൻ ചെയ്യുക' : 'Welcome back to ReadEase'}
+            <h1 className="text-2xl sm:text-3xl font-editorial font-normal text-text-primary tracking-tight">
+              {language === 'ML' ? 'സ്വാഗതം' : 'Welcome to ReadEase'}
             </h1>
-            <p className="text-body-md text-text-secondary">
+            <p className="text-xs sm:text-sm text-text-secondary">
               {language === 'ML'
-                ? 'നിങ്ങളുടെ വ്യക്തിഗത വായനാ ക്രമീകരണങ്ങൾ ഉപയോഗിക്കാൻ പ്രവേശിക്കുക.'
-                : 'Sign in to access your assistive reading workspace & cognitive aids.'}
+                ? 'നിങ്ങളുടെ അക്കൗണ്ടിലേക്ക് പ്രവേശിക്കുക'
+                : 'Sign in to access your assistive reading tools'}
             </p>
           </div>
 

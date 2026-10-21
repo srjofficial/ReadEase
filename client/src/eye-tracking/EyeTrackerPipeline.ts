@@ -156,8 +156,11 @@ export class EyeTrackerPipeline {
     return this.gazeSensitivity;
   }
 
+  private currentVideoElement: HTMLVideoElement | null = null;
+
   public processVideoFrame(video: HTMLVideoElement): TrackingFrameResult | null {
     if (!video || video.videoWidth === 0 || video.videoHeight === 0) return null;
+    this.currentVideoElement = video;
 
     // Track FPS
     const now = performance.now();
@@ -199,8 +202,8 @@ export class EyeTrackerPipeline {
     // 1. Head Pose & Distance
     const headPose = this.headPoseEstimator.estimateHeadPose(lm);
 
-    // 2. Raw Geometric Gaze Estimation
-    const rawGaze = this.gazeEstimator.estimateGaze(lm, headPose, timestamp);
+    // 2. Raw Geometric Gaze Estimation (with subpixel iris + dark pupil fallback)
+    const rawGaze = this.gazeEstimator.estimateGaze(lm, headPose, timestamp, this.currentVideoElement);
     if (!rawGaze) return;
 
     // 3. Blink Detection
@@ -215,7 +218,7 @@ export class EyeTrackerPipeline {
     );
 
     // Sensitivity amplification
-    const gain = this.gazeSensitivity / 2.8;
+    const gain = Math.max(0.6, Math.min(2.0, this.gazeSensitivity / 2.8));
     const amplX = 0.5 + (calibratedScreen.x - 0.5) * gain;
     const amplY = 0.5 + (calibratedScreen.y - 0.5) * gain;
     const normX = Math.max(0.02, Math.min(0.98, amplX));
@@ -224,10 +227,27 @@ export class EyeTrackerPipeline {
     // 5. Adaptive Velocity Temporal Filtering (One Euro Filter)
     const filtered = this.filter2D.filter(normX, normY, timestamp);
 
-    const winW = typeof window !== 'undefined' ? window.innerWidth : 1280;
-    const winH = typeof window !== 'undefined' ? window.innerHeight : 800;
-    const screenPxX = Math.round(filtered.x * winW);
-    const screenPxY = Math.round(filtered.y * winH);
+    // Scope gaze coordinate projection directly to the reading text container
+    const containerBounds = this.textLayoutEngine.getContainerBounds();
+    let screenPxX: number;
+    let screenPxY: number;
+
+    if (containerBounds && containerBounds.width > 120 && containerBounds.height > 120) {
+      const padX = 28;
+      const padY = 28;
+      const minX = containerBounds.left + padX;
+      const maxX = containerBounds.right - padX;
+      const minY = containerBounds.top + padY;
+      const maxY = containerBounds.bottom - padY;
+
+      screenPxX = Math.round(minX + filtered.x * (maxX - minX));
+      screenPxY = Math.round(minY + filtered.y * (maxY - minY));
+    } else {
+      const winW = typeof window !== 'undefined' ? window.innerWidth : 1280;
+      const winH = typeof window !== 'undefined' ? window.innerHeight : 800;
+      screenPxX = Math.round(filtered.x * winW);
+      screenPxY = Math.round(filtered.y * winH);
+    }
 
     // Calculate gaze velocity (px per ms)
     let velocityPxPerMs = 0;
