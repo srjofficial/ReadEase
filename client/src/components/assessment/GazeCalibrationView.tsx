@@ -3,9 +3,40 @@ import { Target, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { Button, Badge } from '../ui';
 import type { CalibrationTarget } from '../../utils/faceMeshTracker';
 
+export interface GazeCalibrationTrackerSubject {
+  processVideoFrame?: (video: HTMLVideoElement) => {
+    rawGazeX?: number;
+    rawGazeY?: number;
+    rawX?: number;
+    rawY?: number;
+    headPose?: { yaw?: number; pitch?: number };
+  } | null;
+  estimateGazeFromVideo?: (video: HTMLVideoElement) => {
+    rawGazeX?: number;
+    rawGazeY?: number;
+    rawX?: number;
+    rawY?: number;
+    headPose?: { yaw?: number; pitch?: number };
+  } | null;
+  calibrationEngine?: {
+    addSample: (sample: {
+      targetX: number;
+      targetY: number;
+      gazeX: number;
+      gazeY: number;
+      yaw: number;
+      pitch: number;
+      timestamp: number;
+    }) => void;
+    finalizeCalibration: () => { qualityScore: number };
+  };
+  addCalibrationSample?: (targetX: number, targetY: number, rawX: number, rawY: number) => void;
+  finalizeCalibration?: () => void;
+}
+
 interface GazeCalibrationViewProps {
   videoRef: React.RefObject<HTMLVideoElement>;
-  tracker: any;
+  tracker: GazeCalibrationTrackerSubject;
   onCalibrationComplete: () => void;
   onSkip: () => void;
 }

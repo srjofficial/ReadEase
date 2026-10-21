@@ -2,9 +2,32 @@ import js from '@eslint/js';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
 import prettierConfig from 'eslint-config-prettier';
+import globals from 'globals';
 
 export default [
+  {
+    ignores: [
+      '**/dist/**',
+      '**/node_modules/**',
+      '**/build/**',
+      '**/coverage/**',
+      '**/*.d.ts',
+      '**/public/**',
+      '.husky/**'
+    ]
+  },
   js.configs.recommended,
+  {
+    files: ['**/*.js', '**/*.mjs', '**/*.cjs'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: {
+        ...globals.node,
+        ...globals.browser
+      }
+    }
+  },
   {
     files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
@@ -14,27 +37,8 @@ export default [
         sourceType: 'module'
       },
       globals: {
-        window: 'readonly',
-        document: 'readonly',
-        process: 'readonly',
-        console: 'readonly',
-        fetch: 'readonly',
-        setTimeout: 'readonly',
-        clearTimeout: 'readonly',
-        setInterval: 'readonly',
-        clearInterval: 'readonly',
-        __dirname: 'readonly',
-        module: 'readonly',
-        HTMLDivElement: 'readonly',
-        HTMLButtonElement: 'readonly',
-        HTMLSpanElement: 'readonly',
-        HTMLInputElement: 'readonly',
-        HTMLTextAreaElement: 'readonly',
-        HTMLHeadingElement: 'readonly',
-        HTMLParagraphElement: 'readonly',
-        KeyboardEvent: 'readonly',
-        MouseEvent: 'readonly',
-        HTMLElement: 'readonly'
+        ...globals.browser,
+        ...globals.node
       }
     },
     plugins: {
@@ -43,6 +47,9 @@ export default [
     rules: {
       ...tsPlugin.configs.recommended.rules,
       'no-undef': 'off', // Handled strictly by TypeScript compiler (tsc)
+      'no-empty': ['error', { allowEmptyCatch: true }],
+      'no-control-regex': 'off',
+      'no-misleading-character-class': 'off',
       '@typescript-eslint/no-unused-vars': [
         'warn',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }
@@ -52,15 +59,5 @@ export default [
       'no-console': ['warn', { allow: ['warn', 'error', 'info', 'log'] }]
     }
   },
-  prettierConfig,
-  {
-    ignores: [
-      '**/dist/**',
-      '**/node_modules/**',
-      '**/build/**',
-      '**/coverage/**',
-      '**/*.d.ts',
-      '.husky/**'
-    ]
-  }
+  prettierConfig
 ];

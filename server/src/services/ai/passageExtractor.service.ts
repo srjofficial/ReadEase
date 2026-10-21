@@ -24,7 +24,7 @@ export interface ExtractPassageResponse {
  */
 function cleanBinaryArtifacts(text: string): { cleaned: string; hadBinaryNoise: boolean } {
   let cleaned = text;
-  const hadBinaryNoise = /JFIF|Exif|\!2222222222|DCTDecode|stream\b/i.test(text);
+  const hadBinaryNoise = /JFIF|Exif|!2222222222|DCTDecode|stream\b/i.test(text);
 
   // Remove JFIF blocks and JPEG headers
   cleaned = cleaned.replace(/JFIF[\s\S]*?(?=\b[A-Za-z]{3,}|\n\n|$)/gi, '');
@@ -44,7 +44,9 @@ export class PassageExtractorService {
     const { cleaned, hadBinaryNoise } = cleanBinaryArtifacts(rawText || '');
 
     // Sample words to see if readable content exists
-    const words = cleaned.split(/\s+/).filter((w) => w.length > 2 && /^[a-zA-Z\u0D00-\u0D7F]+$/.test(w));
+    const words = cleaned
+      .split(/\s+/)
+      .filter((w) => w.length > 2 && /^[a-zA-Z\u0D00-\u0D7F]+$/.test(w));
     const isMalayalam = language === 'Malayalam' || /[\u0D00-\u0D7F]/.test(cleaned);
 
     const promptContext = `
@@ -141,7 +143,8 @@ Rules:
       logger.error({ err }, 'Failed AI passage extraction, providing fallback cleanup');
 
       // Fallback: rule-based cleanup
-      const fallbackTitle = fileName?.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ') || 'Reading Passage';
+      const fallbackTitle =
+        fileName?.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ') || 'Reading Passage';
       const fallbackText =
         words.length > 20
           ? words.join(' ')

@@ -65,8 +65,9 @@ export function runEyeTrackingTests(): {
     // Fast saccade jump: jump from 500 to 800 in 66ms
     const jump1 = filter.filter(800, 300, t0 + 20 * 33);
     assert(jump1.x > 700, 'OneEuroFilter: Dynamic cutoff widens on saccades without excessive lag');
-  } catch (err: any) {
-    assert(false, 'OneEuroFilter tests', err.message);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    assert(false, 'OneEuroFilter tests', msg);
   }
 
   // TEST 2: CalibrationEngine 5-Point Polynomial Fitting
@@ -105,8 +106,9 @@ export function runEyeTrackingTests(): {
       Math.abs(testTransformed.x - 0.5) < 0.15 && Math.abs(testTransformed.y - 0.5) < 0.15,
       'CalibrationEngine: Center gaze accurately maps to screen center'
     );
-  } catch (err: any) {
-    assert(false, 'CalibrationEngine tests', err.message);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    assert(false, 'CalibrationEngine tests', msg);
   }
 
   // TEST 3: Fixation Detection (I-VT & Spatial Dispersion)
@@ -140,8 +142,9 @@ export function runEyeTrackingTests(): {
       firstFix && firstFix.duration >= 200,
       'FixationDetector: Fixation duration accurately recorded (>200ms)'
     );
-  } catch (err: any) {
-    assert(false, 'FixationDetector tests', err.message);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    assert(false, 'FixationDetector tests', msg);
   }
 
   // TEST 4: Saccade & Regression Detection
@@ -200,8 +203,9 @@ export function runEyeTrackingTests(): {
       interReg !== null && interReg.isInterLine,
       'RegressionDetector: Correctly flagged inter-line regression'
     );
-  } catch (err: any) {
-    assert(false, 'Saccade and Regression tests', err.message);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    assert(false, 'Saccade and Regression tests', msg);
   }
 
   // TEST 5: Blink Detection (EAR Drop & Recovery)
@@ -224,8 +228,9 @@ export function runEyeTrackingTests(): {
       'BlinkDetector: Normal reading blink detected upon eye reopening'
     );
     assert(res.blinkCount === 1, 'BlinkDetector: Total blink count incremented to 1');
-  } catch (err: any) {
-    assert(false, 'BlinkDetector tests', err.message);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    assert(false, 'BlinkDetector tests', msg);
   }
 
   // TEST 6: Head Pose Estimation & Distance Quality
@@ -249,8 +254,9 @@ export function runEyeTrackingTests(): {
       headPose.distanceQuality === 'optimal',
       'HeadPoseEstimator: Ideal face distance classified'
     );
-  } catch (err: any) {
-    assert(false, 'HeadPoseEstimator tests', err.message);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    assert(false, 'HeadPoseEstimator tests', msg);
   }
 
   console.log(`--- TEST SUITE COMPLETE: ${passed} Passed, ${failed} Failed ---`);

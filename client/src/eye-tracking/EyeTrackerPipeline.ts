@@ -12,6 +12,7 @@
  */
 
 import * as faceMeshModule from '@mediapipe/face_mesh';
+import type { FaceMesh, Results } from '@mediapipe/face_mesh';
 import type {
   Point2D,
   Point3D,
@@ -43,11 +44,29 @@ export const FACEMESH_RIGHT_EYE_INDICES = [
   362, 382, 381, 380, 374, 373, 390, 249, 263, 466, 388, 387, 386, 385, 384, 398
 ];
 
-const FaceMeshConstructor: any =
-  (faceMeshModule as any).FaceMesh ||
-  (faceMeshModule as any).default?.FaceMesh ||
-  (faceMeshModule as any).default ||
-  (typeof window !== 'undefined' && (window as any).FaceMesh);
+type FaceMeshConstructorType = new (config?: {
+  locateFile?: (path: string, prefix?: string) => string;
+}) => FaceMesh;
+
+interface WindowWithFaceMesh extends Window {
+  FaceMesh?: FaceMeshConstructorType;
+}
+
+interface FaceMeshModuleShape {
+  FaceMesh?: FaceMeshConstructorType;
+  default?: FaceMeshConstructorType | { FaceMesh?: FaceMeshConstructorType };
+}
+
+const typedFaceMeshModule = faceMeshModule as unknown as FaceMeshModuleShape;
+const typedWindow =
+  typeof window !== 'undefined' ? (window as unknown as WindowWithFaceMesh) : undefined;
+
+const FaceMeshConstructor: FaceMeshConstructorType | undefined =
+  typedFaceMeshModule.FaceMesh ||
+  (typeof typedFaceMeshModule.default === 'function'
+    ? typedFaceMeshModule.default
+    : typedFaceMeshModule.default?.FaceMesh) ||
+  typedWindow?.FaceMesh;
 
 export interface TrackingFrameResult {
   timestamp: number;
@@ -89,7 +108,7 @@ export interface TrackingFrameResult {
 }
 
 export class EyeTrackerPipeline {
-  private faceMesh: any = null;
+  private faceMesh: FaceMesh | null = null;
   private isFaceMeshReady = false;
   private isProcessingFrame = false;
 
@@ -136,7 +155,7 @@ export class EyeTrackerPipeline {
           minDetectionConfidence: 0.5,
           minTrackingConfidence: 0.5
         });
-        fm.onResults((r: any) => this.handleFaceMeshResults(r));
+        fm.onResults((r: Results) => this.handleFaceMeshResults(r));
         await fm.initialize();
         this.faceMesh = fm;
         this.isFaceMeshReady = true;
@@ -230,7 +249,7 @@ export class EyeTrackerPipeline {
     return this.latestFrameResult;
   }
 
-  private handleFaceMeshResults(results: any): void {
+  private handleFaceMeshResults(results: Results): void {
     const lm = results?.multiFaceLandmarks?.[0] as Point3D[] | undefined;
     if (!lm || lm.length < 468) return;
     try {

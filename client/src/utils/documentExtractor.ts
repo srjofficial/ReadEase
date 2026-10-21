@@ -154,7 +154,6 @@ async function extractTextFromPDF(arrayBuffer: ArrayBuffer): Promise<string> {
       const page = await doc.getPage(pageNum);
       const textContent = await page.getTextContent();
       const pageStrings = textContent.items
-        // @ts-ignore
         .map((item) => ('str' in item ? item.str : ''))
         .filter((s: string) => s.trim().length > 0);
 
@@ -253,10 +252,7 @@ export async function extractTextFromFile(
 /**
  * Helper to process raw pasted text
  */
-export function processRawPastedText(
-  rawText: string,
-  userTitle?: string
-): ExtractedDocumentResult {
+export function processRawPastedText(rawText: string, userTitle?: string): ExtractedDocumentResult {
   const cleaned = cleanRawText(rawText)
     .replace(/\r\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
@@ -269,7 +265,10 @@ export function processRawPastedText(
   const gradeLevel = estimateGradeLevel(cleaned);
 
   const fallbackTitle =
-    words.slice(0, 4).join(' ').replace(/[^a-zA-Z0-9\s]/g, '') || 'Custom Reading Passage';
+    words
+      .slice(0, 4)
+      .join(' ')
+      .replace(/[^a-zA-Z0-9\s]/g, '') || 'Custom Reading Passage';
 
   return {
     text: cleaned,
