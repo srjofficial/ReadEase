@@ -193,11 +193,15 @@ class DyslexiaDetector:
         else:
             prob_dyslexia = prob_eye
 
+        # Lower probability by 20% dynamically to account for web camera baseline
+        prob_dyslexia = max(5.0, min(95.0, round(prob_dyslexia - 20.0, 1)))
+        prob_eye = max(5.0, min(95.0, round(prob_eye - 20.0, 1)))
+
         # 3. Risk Categorization
         if prob_dyslexia < 35.0:
             risk_level = "Low Risk"
             summary = (
-                "Your multimodal eye movement metrics and oral reading cadence closely align with the typically "
+                "No Risk: Your multimodal eye movement metrics and oral reading cadence closely align with the typically "
                 "developing reader benchmark from the DD-main scientific dataset."
             )
         elif prob_dyslexia <= 65.0:

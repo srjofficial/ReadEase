@@ -497,7 +497,7 @@ export class FaceMeshTracker {
     const GAIN_Y = 3.6 * gainMult;
 
     // Negate horizontal ocular delta and yaw for front-facing webcam mirroring (left is left, right is right)
-    let screenX = 0.5 - deltaX * GAIN_X - (yawDeg / 36) * 0.20;
+    let screenX = 0.5 - deltaX * GAIN_X - (yawDeg / 36) * 0.2;
     let screenY = 0.48 + deltaY * GAIN_Y + (pitchDeg / 28) * 0.16;
 
     // Apply 5-point calibration if active
@@ -1068,16 +1068,28 @@ export class FaceMeshTracker {
           source.connect(this.audioAnalyser);
 
           const pcmData = new Uint8Array(this.audioAnalyser.frequencyBinCount);
+          let lastVolumeTimestamp = 0;
+          let lastDispatchedVolume = -1;
           const updateVolume = () => {
             if (!this.voiceIsListening || !this.audioAnalyser) return;
-            this.audioAnalyser.getByteFrequencyData(pcmData);
-            let sum = 0;
-            for (let i = 0; i < pcmData.length; i++) {
-              sum += pcmData[i];
+            const now = performance.now();
+            if (now - lastVolumeTimestamp >= 150) {
+              lastVolumeTimestamp = now;
+              this.audioAnalyser.getByteFrequencyData(pcmData);
+              let sum = 0;
+              for (let i = 0; i < pcmData.length; i++) {
+                sum += pcmData[i];
+              }
+              const avg = sum / pcmData.length;
+              const volume = Math.min(100, Math.round((avg / 128) * 100));
+              if (
+                Math.abs(volume - lastDispatchedVolume) >= 3 ||
+                (volume === 0 && lastDispatchedVolume > 0)
+              ) {
+                lastDispatchedVolume = volume;
+                onAudioLevel?.(volume);
+              }
             }
-            const avg = sum / pcmData.length;
-            const volume = Math.min(100, Math.round((avg / 128) * 100));
-            onAudioLevel?.(volume);
             this.audioAnimId = requestAnimationFrame(updateVolume);
           };
           this.audioAnimId = requestAnimationFrame(updateVolume);
@@ -1132,7 +1144,11 @@ export class FaceMeshTracker {
       this.latestInterimText = interimText.trim();
 
       // Ensure full cumulative spoken transcript across all phrases is dispatched
-      const fullAccumulated = (this.voiceTranscripts.join(' ') + ' ' + this.latestInterimText).trim();
+      const fullAccumulated = (
+        this.voiceTranscripts.join(' ') +
+        ' ' +
+        this.latestInterimText
+      ).trim();
       if (fullAccumulated && onPartialResult) {
         onPartialResult(fullAccumulated);
       }

@@ -98,14 +98,16 @@ export class OneEuroFilter1D {
 export class OneEuroFilter2D {
   private filterX: OneEuroFilter1D;
   private filterY: OneEuroFilter1D;
+  private lastX: number | null = null;
+  private lastY: number | null = null;
 
   constructor(config: OneEuroConfig = {}) {
-    // Configured for screen eye tracking:
-    // minCutoff = 0.85 Hz provides steady, smooth fixation without jumping
-    // beta = 0.004 allows smooth progressive traversal during reading
+    // Configured for normalized 0–1 gaze coordinates:
+    // minCutoff = 0.12 Hz keeps resting tremor suppressed
+    // beta = 1.3 eliminates motion lag and latency during head movements
     const tunedConfig: OneEuroConfig = {
-      minCutoff: config.minCutoff ?? 0.85,
-      beta: config.beta ?? 0.004,
+      minCutoff: config.minCutoff ?? 0.12,
+      beta: config.beta ?? 1.3,
       dCutoff: config.dCutoff ?? 1.0
     };
     this.filterX = new OneEuroFilter1D(tunedConfig);
@@ -113,14 +115,28 @@ export class OneEuroFilter2D {
   }
 
   public filter(x: number, y: number, timestamp: number): { x: number; y: number } {
-    return {
-      x: this.filterX.filter(x, timestamp),
-      y: this.filterY.filter(y, timestamp)
-    };
+    let outX = this.filterX.filter(x, timestamp);
+    let outY = this.filterY.filter(y, timestamp);
+
+    // Deadband filter (~2.2px on 1080p): completely kills micro-vibrations and webcam pixel quantization
+    if (this.lastX !== null && this.lastY !== null) {
+      const dist = Math.hypot(outX - this.lastX, outY - this.lastY);
+      if (dist < 0.0022) {
+        // Soft deadband: blend 90% previous position to keep cursor rock solid during fixation
+        outX = this.lastX * 0.9 + outX * 0.1;
+        outY = this.lastY * 0.9 + outY * 0.1;
+      }
+    }
+
+    this.lastX = outX;
+    this.lastY = outY;
+    return { x: outX, y: outY };
   }
 
   public reset(): void {
     this.filterX.reset();
     this.filterY.reset();
+    this.lastX = null;
+    this.lastY = null;
   }
 }

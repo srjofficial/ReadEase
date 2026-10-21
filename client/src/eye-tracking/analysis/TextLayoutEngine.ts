@@ -34,6 +34,7 @@ export class TextLayoutEngine {
   }
 
   public bindContainer(element: HTMLElement | null): void {
+    if (this.containerElement === element) return;
     if (this.containerElement && this.resizeObserver) {
       this.resizeObserver.unobserve(this.containerElement);
     }
@@ -194,13 +195,13 @@ export class TextLayoutEngine {
       };
     }
 
-    // 1. Direct bounding box check (with generous padding for easy reading focus)
+    // 1. Direct bounding box check (with generous, expanded radius for effortless reading perception)
     for (const box of this.wordBoxes) {
       if (
-        pixelX >= box.left - 12 &&
-        pixelX <= box.right + 12 &&
-        pixelY >= box.top - 8 &&
-        pixelY <= box.bottom + 8
+        pixelX >= box.left - 28 &&
+        pixelX <= box.right + 28 &&
+        pixelY >= box.top - 18 &&
+        pixelY <= box.bottom + 18
       ) {
         return {
           wordIndex: box.index,
@@ -221,8 +222,8 @@ export class TextLayoutEngine {
     for (const box of this.wordBoxes) {
       const dX = Math.abs(pixelX - box.centerX);
       const dY = Math.abs(pixelY - box.centerY);
-      // Penalize vertical distance 1.8x to prevent inadvertent jumping between lines
-      const dist = Math.hypot(dX, dY * 1.8);
+      // Penalize vertical distance 1.6x to prevent inadvertent jumping between lines
+      const dist = Math.hypot(dX, dY * 1.6);
 
       if (dist < minDistance) {
         minDistance = dist;
@@ -230,7 +231,7 @@ export class TextLayoutEngine {
       }
     }
 
-    if (closestWord && minDistance < 180) {
+    if (closestWord && minDistance < 260) {
       return {
         wordIndex: closestWord.index,
         wordText: closestWord.text,

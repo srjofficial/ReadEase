@@ -29,6 +29,8 @@ export class GeometricGazeEstimator implements IGazeEstimator {
   private baselineGazeX = 0.5;
   private baselineGazeY = 0.5;
   private isBaselineInitialized = false;
+  private smoothRightIris: Point2D | null = null;
+  private smoothLeftIris: Point2D | null = null;
   private offscreenCanvas: HTMLCanvasElement | null = null;
   private offscreenCtx: CanvasRenderingContext2D | null = null;
 
@@ -146,59 +148,79 @@ export class GeometricGazeEstimator implements IGazeEstimator {
 
     const isBlinking = (earLeft + earRight) / 2 < 0.175;
 
+    // Pre-filter raw iris with light exponential smoothing to kill camera sensor quantization flicker
+    const irisAlpha = 0.65;
+    if (!this.smoothRightIris) {
+      this.smoothRightIris = { x: rIris.x, y: rIris.y };
+    } else {
+      this.smoothRightIris = {
+        x: irisAlpha * rIris.x + (1 - irisAlpha) * this.smoothRightIris.x,
+        y: irisAlpha * rIris.y + (1 - irisAlpha) * this.smoothRightIris.y
+      };
+    }
+
+    if (!this.smoothLeftIris) {
+      this.smoothLeftIris = { x: lIris.x, y: lIris.y };
+    } else {
+      this.smoothLeftIris = {
+        x: irisAlpha * lIris.x + (1 - irisAlpha) * this.smoothLeftIris.x,
+        y: irisAlpha * lIris.y + (1 - irisAlpha) * this.smoothLeftIris.y
+      };
+    }
+
+    const curRIris = this.smoothRightIris;
+    const curLIris = this.smoothLeftIris;
+
     // 3. Dot-product horizontal ocular deflection projection
     // Right eye: vector from outer corner (33) to inner corner (133)
     const rEyeVecX = rInner.x - rOuter.x;
     const rEyeVecY = rInner.y - rOuter.y;
     const rEyeLenSq = Math.max(1e-6, rEyeVecX * rEyeVecX + rEyeVecY * rEyeVecY);
-    const rIrisVecX = rIris.x - rOuter.x;
-    const rIrisVecY = rIris.y - rOuter.y;
+    const rIrisVecX = curRIris.x - rOuter.x;
+    const rIrisVecY = curRIris.y - rOuter.y;
     const ratioRightX = (rIrisVecX * rEyeVecX + rIrisVecY * rEyeVecY) / rEyeLenSq;
 
     // Left eye: vector from inner corner (362) to outer corner (263)
     const lEyeVecX = lOuter.x - lInner.x;
     const lEyeVecY = lOuter.y - lInner.y;
     const lEyeLenSq = Math.max(1e-6, lEyeVecX * lEyeVecX + lEyeVecY * lEyeVecY);
-    const lIrisVecX = lIris.x - lInner.x;
-    const lIrisVecY = lIris.y - lInner.y;
+    const lIrisVecX = curLIris.x - lInner.x;
+    const lIrisVecY = curLIris.y - lInner.y;
     const ratioLeftX = (lIrisVecX * lEyeVecX + lIrisVecY * lEyeVecY) / lEyeLenSq;
 
-    // 4. Vertical ocular deflection
-    const rVOpen = Math.max(0.005, rBottom.y - rTop.y);
-    const ratioRightY = (rIris.y - rTop.y) / rVOpen;
+    // 4. Vertical ocular deflection relative to fixed orbital eye corners
+    // Unlike eyelids which droop/lag when looking down, eye corners are fixed on the skull
+    const rEyeWidth = Math.max(1e-4, Math.hypot(rEyeVecX, rEyeVecY));
+    const rCornerMidY = (rOuter.y + rInner.y) / 2;
+    const ratioRightY = (curRIris.y - rCornerMidY) / rEyeWidth;
 
-    const lVOpen = Math.max(0.005, lBottom.y - lTop.y);
-    const ratioLeftY = (lIris.y - lTop.y) / lVOpen;
+    const lEyeWidth = Math.max(1e-4, Math.hypot(lEyeVecX, lEyeVecY));
+    const lCornerMidY = (lOuter.y + lInner.y) / 2;
+    const ratioLeftY = (curLIris.y - lCornerMidY) / lEyeWidth;
 
     // Harmonized ocular gaze ratios
     const ocularGazeX = (ratioRightX + ratioLeftX) / 2;
     const ocularGazeY = (ratioRightY + ratioLeftY) / 2;
 
     // 5. Anatomical resting baseline tracking
-    // Human eyes are geometrically centered when iris is mid-palpebral fissure (~0.50)
     if (!this.isBaselineInitialized) {
-      this.baselineGazeX = Math.max(0.44, Math.min(0.56, ocularGazeX));
-      this.baselineGazeY = Math.max(0.42, Math.min(0.54, ocularGazeY));
+      this.baselineGazeX = ocularGazeX;
+      this.baselineGazeY = ocularGazeY;
       this.isBaselineInitialized = true;
     }
-    // Note: Do NOT drift baseline toward active gaze while reading; doing so erases ocular deflection!
 
     // ── MIRRORING CORRECTION & OCULAR SENSITIVITY ──
     // In selfie webcam video: looking to your LEFT moves the pupil to camera-right (positive X).
-    // Negate the horizontal ocular delta so looking left moves to screen-left (decreasing X).
-    // Calibrated ocular gain tuned for scoped reading passage traversal
-    const deltaOcularX = -(ocularGazeX - this.baselineGazeX) * 4.6;
-    const deltaOcularY = (ocularGazeY - this.baselineGazeY) * 3.6;
+    // Negate horizontal delta so looking left moves to screen-left.
+    const deltaOcularX = -(ocularGazeX - this.baselineGazeX) * 3.4;
+    // Looking down moves iris downward in image space (positive Y), so delta is positive:
+    const deltaOcularY = (ocularGazeY - this.baselineGazeY) * 3.8;
 
-    // Gentle head pose assistance (negate yaw to match mirror selfie orientation)
-    const headYawContribution = -((headPose?.yaw || 0) / 36) * 0.20;
-    const headPitchContribution = ((headPose?.pitch || 0) / 28) * 0.16;
-
-    const combinedGazeX = Math.max(0.04, Math.min(0.96, 0.5 + deltaOcularX + headYawContribution));
-    const combinedGazeY = Math.max(0.04, Math.min(0.96, 0.5 + deltaOcularY + headPitchContribution));
+    const combinedGazeX = Math.max(0.02, Math.min(0.98, 0.5 + deltaOcularX));
+    const combinedGazeY = Math.max(0.02, Math.min(0.98, 0.5 + deltaOcularY));
 
     const rightEyeFeatures: EyeFeatures = {
-      irisCenter: { x: rIris.x, y: rIris.y },
+      irisCenter: { x: curRIris.x, y: curRIris.y },
       innerCorner: { x: rInner.x, y: rInner.y },
       outerCorner: { x: rOuter.x, y: rOuter.y },
       topLid: { x: rTop.x, y: rTop.y },
@@ -209,7 +231,7 @@ export class GeometricGazeEstimator implements IGazeEstimator {
     };
 
     const leftEyeFeatures: EyeFeatures = {
-      irisCenter: { x: lIris.x, y: lIris.y },
+      irisCenter: { x: curLIris.x, y: curLIris.y },
       innerCorner: { x: lInner.x, y: lInner.y },
       outerCorner: { x: lOuter.x, y: lOuter.y },
       topLid: { x: lTop.x, y: lTop.y },
@@ -243,6 +265,14 @@ export class GeometricGazeEstimator implements IGazeEstimator {
     this.baselineGazeX = 0.5;
     this.baselineGazeY = 0.5;
     this.isBaselineInitialized = false;
+    this.smoothRightIris = null;
+    this.smoothLeftIris = null;
+  }
+
+  public recalibrate(): void {
+    this.isBaselineInitialized = false;
+    this.smoothRightIris = null;
+    this.smoothLeftIris = null;
   }
 }
 

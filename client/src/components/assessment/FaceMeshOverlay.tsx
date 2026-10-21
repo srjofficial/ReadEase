@@ -1,13 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  Eye,
-  Activity,
-  Target,
-  Compass,
-  SunMedium,
-  AlertTriangle,
-  Maximize2
-} from 'lucide-react';
+import { Eye, Activity, Target, Compass, SunMedium, AlertTriangle, Maximize2 } from 'lucide-react';
 import type { Point2D, HeadPoseState } from '../../utils/faceMeshTracker';
 
 export type WireframeMode = 'full' | 'contours' | 'minimal' | 'off';
@@ -38,7 +30,7 @@ interface FaceMeshOverlayProps {
   onSizeChange?: (size: CameraSize) => void;
 }
 
-export const FaceMeshOverlay: React.FC<FaceMeshOverlayProps> = ({
+const FaceMeshOverlayComponent: React.FC<FaceMeshOverlayProps> = ({
   videoRef,
   isTrackingActive,
   faceOvalPoints = [],
@@ -181,6 +173,28 @@ export const FaceMeshOverlay: React.FC<FaceMeshOverlayProps> = ({
     onSetEyeAnchors?.({ left: null, right: null });
   };
 
+  // Store incoming mesh points in a ref so the RAF canvas loop never cancels and restarts on prop updates
+  const meshPointsRef = useRef({
+    faceOvalPoints,
+    leftEyeContour,
+    rightEyeContour,
+    leftIrisCenter,
+    rightIrisCenter,
+    headPose,
+    isBlinking,
+    userAnchors
+  });
+  meshPointsRef.current = {
+    faceOvalPoints,
+    leftEyeContour,
+    rightEyeContour,
+    leftIrisCenter,
+    rightIrisCenter,
+    headPose,
+    isBlinking,
+    userAnchors
+  };
+
   // Continuous Canvas Rendering Loop
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -198,6 +212,17 @@ export const FaceMeshOverlay: React.FC<FaceMeshOverlayProps> = ({
     let animFrameId: number;
 
     const render = () => {
+      const {
+        faceOvalPoints: fPoints,
+        leftEyeContour: lEye,
+        rightEyeContour: rEye,
+        leftIrisCenter: lIris,
+        rightIrisCenter: rIris,
+        headPose: hPose,
+        isBlinking: blinking,
+        userAnchors: anchors
+      } = meshPointsRef.current;
+
       const width = canvas.width;
       const height = canvas.height;
 
@@ -232,13 +257,13 @@ export const FaceMeshOverlay: React.FC<FaceMeshOverlayProps> = ({
       };
 
       // 1. Draw Face Oval Wireframe (Full mode)
-      if (wireframeMode === 'full' && faceOvalPoints.length > 2) {
+      if (wireframeMode === 'full' && fPoints.length > 2) {
         ctx.beginPath();
-        const [firstX, firstY] = toPx(faceOvalPoints[0]);
+        const [firstX, firstY] = toPx(fPoints[0]);
         ctx.moveTo(firstX, firstY);
 
-        for (let i = 1; i < faceOvalPoints.length; i++) {
-          const [px, py] = toPx(faceOvalPoints[i]);
+        for (let i = 1; i < fPoints.length; i++) {
+          const [px, py] = toPx(fPoints[i]);
           ctx.lineTo(px, py);
         }
         ctx.closePath();
@@ -253,8 +278,8 @@ export const FaceMeshOverlay: React.FC<FaceMeshOverlayProps> = ({
 
         // Subtle mesh vertices
         ctx.fillStyle = 'rgba(45, 212, 191, 0.9)';
-        for (let i = 0; i < faceOvalPoints.length; i += 3) {
-          const [px, py] = toPx(faceOvalPoints[i]);
+        for (let i = 0; i < fPoints.length; i += 3) {
+          const [px, py] = toPx(fPoints[i]);
           ctx.beginPath();
           ctx.arc(px, py, 2, 0, Math.PI * 2);
           ctx.fill();
@@ -278,9 +303,9 @@ export const FaceMeshOverlay: React.FC<FaceMeshOverlayProps> = ({
           ctx.stroke();
         };
 
-        const eyeColor = isBlinking ? 'rgba(239, 68, 68, 0.85)' : 'rgba(99, 102, 241, 0.85)';
-        drawContour(leftEyeContour, eyeColor);
-        drawContour(rightEyeContour, eyeColor);
+        const eyeColor = blinking ? 'rgba(239, 68, 68, 0.85)' : 'rgba(99, 102, 241, 0.85)';
+        drawContour(lEye, eyeColor);
+        drawContour(rEye, eyeColor);
       }
 
       // 3. Draw User Eye Anchors & Iris Pupils (All non-off modes)
@@ -305,8 +330,8 @@ export const FaceMeshOverlay: React.FC<FaceMeshOverlayProps> = ({
         ctx.restore();
       };
 
-      drawAnchor(userAnchors.left, 'L Eye');
-      drawAnchor(userAnchors.right, 'R Eye');
+      drawAnchor(anchors.left, 'L Eye');
+      drawAnchor(anchors.right, 'R Eye');
 
       const drawIris = (irisCenter?: Point2D) => {
         if (!irisCenter) return;
@@ -326,29 +351,29 @@ export const FaceMeshOverlay: React.FC<FaceMeshOverlayProps> = ({
 
         // Glowing Iris pupil center circle
         ctx.beginPath();
-        ctx.arc(ix, iy, isBlinking ? 2 : 4, 0, Math.PI * 2);
-        ctx.fillStyle = isBlinking ? 'rgba(239, 68, 68, 0.9)' : 'rgba(251, 191, 36, 0.95)';
+        ctx.arc(ix, iy, blinking ? 2 : 4, 0, Math.PI * 2);
+        ctx.fillStyle = blinking ? 'rgba(239, 68, 68, 0.9)' : 'rgba(251, 191, 36, 0.95)';
         ctx.shadowColor = 'rgba(245, 158, 11, 0.7)';
         ctx.shadowBlur = 5;
         ctx.fill();
         ctx.shadowBlur = 0;
       };
 
-      drawIris(leftIrisCenter);
-      drawIris(rightIrisCenter);
+      drawIris(lIris);
+      drawIris(rIris);
 
       // 4. Draw Head Pose Orientation Target Box (Full mode)
       if (wireframeMode === 'full') {
         const boxSize = 28;
-        const centerX = width / 2 - headPose.yaw * 1.8;
-        const centerY = height / 2 + headPose.pitch * 1.5;
+        const centerX = width / 2 - hPose.yaw * 1.8;
+        const centerY = height / 2 + hPose.pitch * 1.5;
 
         ctx.save();
         ctx.translate(centerX, centerY);
-        ctx.rotate((-headPose.roll * Math.PI) / 180);
+        ctx.rotate((-hPose.roll * Math.PI) / 180);
 
         ctx.strokeStyle =
-          headPose.alignment === 'centered'
+          hPose.alignment === 'centered'
             ? 'rgba(16, 185, 129, 0.7)' // Emerald green
             : 'rgba(245, 158, 11, 0.8)'; // Amber warning
         ctx.lineWidth = 1.4;
@@ -363,41 +388,24 @@ export const FaceMeshOverlay: React.FC<FaceMeshOverlayProps> = ({
 
     animFrameId = requestAnimationFrame(render);
     return () => cancelAnimationFrame(animFrameId);
-  }, [
-    isTrackingActive,
-    wireframeMode,
-    faceOvalPoints,
-    leftEyeContour,
-    rightEyeContour,
-    leftIrisCenter,
-    rightIrisCenter,
-    headPose,
-    isBlinking
-  ]);
+  }, [isTrackingActive, wireframeMode]);
 
-  // Adjust canvas pixel resolution to match parent video dimensions
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const updateSize = () => {
-      const el = localVideoRef.current || videoRef.current;
-      if (!el || !canvas) return;
-      const rect = el.getBoundingClientRect();
-      if (rect.width > 0 && rect.height > 0) {
-        canvas.width = rect.width;
-        canvas.height = rect.height;
+    const box = containerRef.current;
+    if (!canvas || !box) return;
+    const update = () => {
+      const r = box.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) {
+        canvas.width = Math.round(r.width);
+        canvas.height = Math.round(r.height);
       }
     };
-
-    updateSize();
-    const t = setTimeout(updateSize, 250);
-    window.addEventListener('resize', updateSize);
-    return () => {
-      clearTimeout(t);
-      window.removeEventListener('resize', updateSize);
-    };
-  }, [videoRef, cameraSize]);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(box);
+    return () => ro.disconnect();
+  }, []);
 
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -406,6 +414,7 @@ export const FaceMeshOverlay: React.FC<FaceMeshOverlayProps> = ({
       if (localVideoRef.current && videoRef.current && videoRef.current.srcObject) {
         if (localVideoRef.current.srcObject !== videoRef.current.srcObject) {
           localVideoRef.current.srcObject = videoRef.current.srcObject;
+          localVideoRef.current.play().catch(() => {});
         }
       }
     };
@@ -438,6 +447,7 @@ export const FaceMeshOverlay: React.FC<FaceMeshOverlayProps> = ({
           autoPlay
           playsInline
           muted
+          onLoadedMetadata={() => localVideoRef.current?.play().catch(() => {})}
           className={`w-full h-full object-cover scale-x-[-1] ${isPinpointMode && frozenSnapshot ? 'hidden' : 'block'}`}
         />
 
@@ -679,3 +689,4 @@ export const FaceMeshOverlay: React.FC<FaceMeshOverlayProps> = ({
     </div>
   );
 };
+export const FaceMeshOverlay = React.memo(FaceMeshOverlayComponent);

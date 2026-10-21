@@ -20,6 +20,7 @@ import type {
   ObservableFacialSignals,
   ReadingSessionMetrics
 } from './types';
+import { JEOHeadTracker } from './core/JEOHeadTracker';
 import { GeometricGazeEstimator } from './core/GazeEstimator';
 import { HeadPoseEstimator } from './core/HeadPoseEstimator';
 import { BlinkDetector } from './core/BlinkDetector';
@@ -92,7 +93,15 @@ export class EyeTrackerPipeline {
   private isFaceMeshReady = false;
   private isProcessingFrame = false;
 
-  // Components
+  // JEOresearch HeadTracker (primary tracking engine ported from MonitorTracking.py)
+  public headTracker = new JEOHeadTracker({
+    filterLength: 8,
+    yawDegrees: 20,
+    pitchDegrees: 10,
+    invertX: true
+  });
+
+  // Ancillary components
   public gazeEstimator = new GeometricGazeEstimator();
   public headPoseEstimator = new HeadPoseEstimator();
   public blinkDetector = new BlinkDetector();
@@ -107,41 +116,50 @@ export class EyeTrackerPipeline {
   private latestFrameResult: TrackingFrameResult | null = null;
   private frameTimestamps: number[] = [];
   private currentFps = 30;
+  private initPromise: Promise<boolean> | null = null;
+  private nextInitAttempt = 0;
+  private srcW = 640;
+  private srcH = 480;
 
-  public async initialize(): Promise<boolean> {
-    if (this.isFaceMeshReady && this.faceMesh) return true;
-
-    try {
-      if (!FaceMeshConstructor) {
-        console.warn('[EyeTrackerPipeline] FaceMesh constructor unavailable');
+  public initialize(): Promise<boolean> {
+    if (this.isFaceMeshReady) return Promise.resolve(true);
+    if (this.initPromise) return this.initPromise;
+    this.initPromise = (async () => {
+      try {
+        if (!FaceMeshConstructor) throw new Error('FaceMesh constructor unavailable');
+        const fm = new FaceMeshConstructor({
+          locateFile: (f: string) => `/mediapipe/face_mesh/${f}`
+        });
+        fm.setOptions({
+          maxNumFaces: 1,
+          refineLandmarks: true,
+          minDetectionConfidence: 0.5,
+          minTrackingConfidence: 0.5
+        });
+        fm.onResults((r: any) => this.handleFaceMeshResults(r));
+        await fm.initialize();
+        this.faceMesh = fm;
+        this.isFaceMeshReady = true;
+        console.log(
+          '✅ [EyeTrackerPipeline] MediaPipe 478 FaceLandmarker with Iris Refinement Ready'
+        );
+        return true;
+      } catch (err) {
+        console.error(
+          '[EyeTrackerPipeline] FaceMesh init failed. Check /public/mediapipe/face_mesh/*',
+          err
+        );
+        this.faceMesh = null;
+        this.initPromise = null;
+        this.nextInitAttempt = performance.now() + 3000;
         return false;
       }
+    })();
+    return this.initPromise;
+  }
 
-      this.faceMesh = new FaceMeshConstructor({
-        locateFile: (file: string) => `/mediapipe/face_mesh/${file}`
-      });
-
-      this.faceMesh.setOptions({
-        maxNumFaces: 1,
-        refineLandmarks: true, // Enables landmarks 468-477 for irises
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5
-      });
-
-      this.faceMesh.onResults((results: any) => {
-        this.handleFaceMeshResults(results);
-      });
-
-      await this.faceMesh.initialize();
-      this.isFaceMeshReady = true;
-      console.log(
-        '✅ [EyeTrackerPipeline] MediaPipe 478 FaceLandmarker with Iris Refinement Ready'
-      );
-      return true;
-    } catch (err) {
-      console.warn('[EyeTrackerPipeline] MediaPipe initialization error:', err);
-      return false;
-    }
+  constructor() {
+    this.setGazeSensitivity(this.gazeSensitivity);
   }
 
   public bindTextContainer(element: HTMLElement | null): void {
@@ -150,17 +168,40 @@ export class EyeTrackerPipeline {
 
   public setGazeSensitivity(val: number): void {
     this.gazeSensitivity = Math.max(1.0, Math.min(5.0, val));
+    // When sensitivity is higher, smaller head rotations reach screen borders
+    const yawDeg = Math.max(6, Math.round(36 / this.gazeSensitivity));
+    const pitchDeg = Math.max(4, Math.round(22 / this.gazeSensitivity));
+    this.headTracker.setSensitivity(yawDeg, pitchDeg);
   }
 
   public getGazeSensitivity(): number {
     return this.gazeSensitivity;
   }
 
-  private currentVideoElement: HTMLVideoElement | null = null;
+  /**
+   * One-touch calibration (matches 'c' key in MonitorTracking.py):
+   * Sets current head orientation as looking directly at screen center
+   */
+  public calibrateHeadCenter(): void {
+    this.headTracker.calibrateCenter();
+    this.gazeEstimator.recalibrate();
+    this.filter2D.reset();
+  }
+
+  public setInvertX(invert: boolean): void {
+    this.headTracker.setInvertX(invert);
+  }
+
+  public getInvertX(): boolean {
+    return this.headTracker.getInvertX();
+  }
 
   public processVideoFrame(video: HTMLVideoElement): TrackingFrameResult | null {
     if (!video || video.videoWidth === 0 || video.videoHeight === 0) return null;
-    this.currentVideoElement = video;
+
+    // Capture source video dimensions for correct aspect-ratio landmark scaling
+    this.srcW = video.videoWidth;
+    this.srcH = video.videoHeight;
 
     // Track FPS
     const now = performance.now();
@@ -171,7 +212,7 @@ export class EyeTrackerPipeline {
     this.currentFps = Math.max(1, this.frameTimestamps.length);
 
     // Ensure model is initialized
-    if (!this.isFaceMeshReady && !this.faceMesh) {
+    if (!this.isFaceMeshReady && !this.initPromise && now > this.nextInitAttempt) {
       this.initialize().catch(() => {});
     }
 
@@ -190,64 +231,90 @@ export class EyeTrackerPipeline {
   }
 
   private handleFaceMeshResults(results: any): void {
-    if (!results || !results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
-      return;
-    }
-
-    const lm = results.multiFaceLandmarks[0] as Point3D[];
+    const lm = results?.multiFaceLandmarks?.[0] as Point3D[] | undefined;
     if (!lm || lm.length < 468) return;
+    try {
+      this.analyzeFrame(lm);
+    } catch (err) {
+      console.error('[EyeTrackerPipeline] analyzeFrame failed (mesh still drawn):', err);
+      const prev = this.latestFrameResult;
+      this.latestFrameResult = {
+        ...(prev ?? ({} as TrackingFrameResult)),
+        timestamp: performance.now(),
+        pixelX: prev?.pixelX ?? 0,
+        pixelY: prev?.pixelY ?? 0,
+        screenX: prev?.screenX ?? 0.5,
+        screenY: prev?.screenY ?? 0.5,
+        activeWordIndex: prev?.activeWordIndex ?? null,
+        isBlinking: prev?.isBlinking ?? false,
+        headPose:
+          prev?.headPose ?? ({ pitch: 0, yaw: 0, roll: 0, alignment: 'centered' } as HeadPoseState),
+        confidence: 0.9,
+        fps: this.currentFps,
+        faceOvalPoints: FACEMESH_FACE_OVAL_INDICES.map((i) => ({ x: lm[i].x, y: lm[i].y })),
+        leftEyeContour: FACEMESH_LEFT_EYE_INDICES.map((i) => ({ x: lm[i].x, y: lm[i].y })),
+        rightEyeContour: FACEMESH_RIGHT_EYE_INDICES.map((i) => ({ x: lm[i].x, y: lm[i].y })),
+        leftIrisCenter: lm[468] ? { x: lm[468].x, y: lm[468].y } : { x: 0.5, y: 0.5 },
+        rightIrisCenter: lm[473] ? { x: lm[473].x, y: lm[473].y } : { x: 0.5, y: 0.5 }
+      } as TrackingFrameResult;
+    }
+  }
 
+  private analyzeFrame(lm: Point3D[]): void {
     const timestamp = performance.now();
 
-    // 1. Head Pose & Distance
-    const headPose = this.headPoseEstimator.estimateHeadPose(lm);
-
-    // 2. Raw Geometric Gaze Estimation (with subpixel iris + dark pupil fallback)
-    const rawGaze = this.gazeEstimator.estimateGaze(lm, headPose, timestamp, this.currentVideoElement);
-    if (!rawGaze) return;
-
-    // 3. Blink Detection
-    const blinkRes = this.blinkDetector.processEAR(rawGaze.earLeft, rawGaze.earRight, timestamp);
-
-    // 4. Polynomial Calibration Mapping (Ocular gaze + Head pose -> Screen coordinates)
-    const calibratedScreen = this.calibrationEngine.mapGazeToScreen(
-      rawGaze.rawGazeX,
-      rawGaze.rawGazeY,
-      headPose.yaw,
-      headPose.pitch
-    );
-
-    // Sensitivity amplification
-    const gain = Math.max(0.6, Math.min(2.0, this.gazeSensitivity / 2.8));
-    const amplX = 0.5 + (calibratedScreen.x - 0.5) * gain;
-    const amplY = 0.5 + (calibratedScreen.y - 0.5) * gain;
-    const normX = Math.max(0.02, Math.min(0.98, amplX));
-    const normY = Math.max(0.02, Math.min(0.98, amplY));
-
-    // 5. Adaptive Velocity Temporal Filtering (One Euro Filter)
-    const filtered = this.filter2D.filter(normX, normY, timestamp);
-
-    // Scope gaze coordinate projection directly to the reading text container
+    // 1. Target Container Bounds & Viewport Dimensions
     const containerBounds = this.textLayoutEngine.getContainerBounds();
-    let screenPxX: number;
-    let screenPxY: number;
+    const winW = typeof window !== 'undefined' ? window.innerWidth : 1280;
+    const winH = typeof window !== 'undefined' ? window.innerHeight : 800;
+    const targetW = containerBounds?.width || winW;
+    const targetH = containerBounds?.height || winH;
 
-    if (containerBounds && containerBounds.width > 120 && containerBounds.height > 120) {
-      const padX = 28;
-      const padY = 28;
-      const minX = containerBounds.left + padX;
-      const maxX = containerBounds.right - padX;
-      const minY = containerBounds.top + padY;
-      const maxY = containerBounds.bottom - padY;
+    // 2. Direct JEOresearch HeadTracker Evaluation (MonitorTracking.py: landmarks 234, 454, 10, 152, 1)
+    const headResult = this.headTracker.processLandmarks(
+      lm,
+      targetW,
+      targetH,
+      this.srcW,
+      this.srcH
+    );
+    if (!headResult) return;
 
-      screenPxX = Math.round(minX + filtered.x * (maxX - minX));
-      screenPxY = Math.round(minY + filtered.y * (maxY - minY));
-    } else {
-      const winW = typeof window !== 'undefined' ? window.innerWidth : 1280;
-      const winH = typeof window !== 'undefined' ? window.innerHeight : 800;
-      screenPxX = Math.round(filtered.x * winW);
-      screenPxY = Math.round(filtered.y * winH);
+    const headPose = headResult.headPose;
+
+    // 2b. High-Precision Subpixel Eye Iris Tracking (MediaPipe landmarks 468 & 473)
+    const ocularGaze = this.gazeEstimator.estimateGaze(lm, headPose, timestamp);
+
+    // Multimodal Gaze Fusion:
+    // Head pose is the primary, stable navigator (90%), eliminating webcam iris jitter
+    // Ocular iris contributes subtle horizontal deflection for reading line saccades (10%)
+    // Vertical is 99% head-driven so eyes looking down at screen don't fight head pitch
+    let rawGazeX = headResult.normX;
+    let rawGazeY = headResult.normY;
+
+    if (ocularGaze && !ocularGaze.isBlinking) {
+      rawGazeX = headResult.normX * 0.9 + ocularGaze.rawGazeX * 0.1;
+      rawGazeY = headResult.normY * 0.99 + ocularGaze.rawGazeY * 0.01;
     }
+
+    // 3. Eye Aspect Ratio (EAR) for blink counter telemetry
+    const rSpanH = Math.hypot(lm[133].x - lm[33].x, lm[133].y - lm[33].y);
+    const rSpanV = Math.hypot(lm[159].x - lm[145].x, lm[159].y - lm[145].y);
+    const earRight = rSpanH > 1e-4 ? Math.min(0.48, rSpanV / (2 * rSpanH)) : 0.28;
+
+    const lSpanH = Math.hypot(lm[263].x - lm[362].x, lm[263].y - lm[362].y);
+    const lSpanV = Math.hypot(lm[386].x - lm[374].x, lm[386].y - lm[374].y);
+    const earLeft = lSpanH > 1e-4 ? Math.min(0.48, lSpanV / (2 * lSpanH)) : 0.28;
+
+    const blinkRes = this.blinkDetector.processEAR(earLeft, earRight, timestamp);
+
+    // 4. One Euro Temporal Filter on fused gaze coordinates
+    const filtered = this.filter2D.filter(rawGazeX, rawGazeY, timestamp);
+
+    // 5. Screen coordinates spanning the entire viewport (with +20px right offset to center on words!)
+    const pad = 16;
+    const screenPxX = Math.round(pad + filtered.x * (winW - 2 * pad)) + 20;
+    const screenPxY = Math.round(pad + filtered.y * (winH - 2 * pad));
 
     // Calculate gaze velocity (px per ms)
     let velocityPxPerMs = 0;
@@ -260,13 +327,15 @@ export class EyeTrackerPipeline {
       velocityPxPerMs = dist / dt;
     }
 
+    const confidence = blinkRes.isBlinking ? 0.7 : 0.95;
+
     this.lastGazePoint = {
       x: filtered.x,
       y: filtered.y,
       screenPixelX: screenPxX,
       screenPixelY: screenPxY,
       timestamp,
-      confidence: rawGaze.confidence,
+      confidence,
       velocity: velocityPxPerMs
     };
 
@@ -276,7 +345,7 @@ export class EyeTrackerPipeline {
     if (hit.wordIndex !== null) {
       this.analyticsEngine.registerWordRead(hit.wordIndex);
     }
-    this.analyticsEngine.recordConfidence(rawGaze.confidence);
+    this.analyticsEngine.recordConfidence(confidence);
 
     // 7. Fixation Detection (I-VT)
     const fixRes = this.analyticsEngine.fixationDetector.processSample(
@@ -289,7 +358,7 @@ export class EyeTrackerPipeline {
       hit.wordText,
       hit.lineIndex,
       timestamp,
-      rawGaze.confidence
+      confidence
     );
 
     if (fixRes.newCompletedFixation) {
@@ -336,8 +405,8 @@ export class EyeTrackerPipeline {
 
     this.latestFrameResult = {
       timestamp,
-      rawGazeX: rawGaze.rawGazeX,
-      rawGazeY: rawGaze.rawGazeY,
+      rawGazeX,
+      rawGazeY,
       screenX: filtered.x,
       screenY: filtered.y,
       pixelX: screenPxX,
@@ -356,13 +425,13 @@ export class EyeTrackerPipeline {
       totalBlinks: blinkRes.blinkCount,
       headPose,
       facialSignals,
-      confidence: rawGaze.confidence,
+      confidence,
       fps: this.currentFps,
       faceOvalPoints,
       leftEyeContour,
       rightEyeContour,
-      leftIrisCenter: rawGaze.leftEye.irisCenter,
-      rightIrisCenter: rawGaze.rightEye.irisCenter
+      leftIrisCenter: lm[468] ? { x: lm[468].x, y: lm[468].y } : { x: 0.5, y: 0.5 },
+      rightIrisCenter: lm[473] ? { x: lm[473].x, y: lm[473].y } : { x: 0.5, y: 0.5 }
     };
   }
 
@@ -375,6 +444,7 @@ export class EyeTrackerPipeline {
   }
 
   public reset(): void {
+    this.headTracker.reset();
     this.gazeEstimator.reset();
     this.headPoseEstimator.reset();
     this.blinkDetector.reset();

@@ -98,3 +98,4 @@ coverage/
 scratch/
 tmp/
 temp/
+*profile.json
