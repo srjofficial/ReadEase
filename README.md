@@ -19,6 +19,9 @@
   <a href="#-tech-stack">Tech Stack</a> •
   <a href="#-configuration-and-execution-guide">Configuration & Execution</a> •
   <a href="#-routing--pages">Routing & Pages</a> •
+  <a href="#-datasets-used">Datasets</a> •
+  <a href="#-open-source-repositories-used">Repositories</a> •
+  <a href="#-academic-references--citations">References</a> •
   <a href="#-accessibility--standards">Accessibility</a> •
   <a href="#-license">License</a>
 </p>
@@ -327,6 +330,142 @@ Once running, access the services:
 | `npm run lint`         | Run ESLint across monorepo                                      |
 | `npm run test`         | Run automated test suites                                       |
 | `npm run validate`     | Complete pre-flight check (`format + lint + typecheck + test`)  |
+
+---
+
+## 📊 Datasets Used
+
+ReadEase integrates clinical research benchmarks and curated multilingual reading materials:
+
+### 1. DD-main (DD-V1 / DD-V2) Eye-Movement Dyslexia Benchmark
+
+- **Publication**: _Identifying dyslexia in school pupils from eye movement and demographic data using artificial intelligence_ (PLOS ONE, 2023) \[[1](#-academic-references--citations)\].
+- **Originating Institution**: Center for Language and Brain, HSE University.
+- **Principal Investigators**: Dr. Soroosh Shalileh, Dr. Dmitry Ignatov, Dr. Anastasiya Lopukhina, Dr. Olga Dragoy.
+- **Cohort Size**: **4,298 primary school students** (Grades 1 to 6).
+- **Composition**: Both control (typically developing readers) and clinically confirmed dyslexic readers.
+- **Modalities Captured**: Foveal fixation durations (`FIX_DURATION`), spatial coordinate centroids (`FIX_X`, `FIX_Y`), sequential word indices (`Word_Number`), progressive/regressive saccade lengths, and pupil diameter dynamics.
+- **Role in ReadEase**: Forms the empirical training corpus for the Random Forest oculomotor biomarker classifier ([`dyslexia_trainer.py`](file:///c:/Users/saroj/projects/ReadEase/ai-service/app/services/screening/dyslexia_trainer.py)) and defines baseline reference norms (control vs. dyslexic distributions for fixation duration, regression frequency, and saccade span).
+
+### 2. ReadEase Curated Bilingual Reading Corpus
+
+- **Curated By**: ReadEase Project Pedagogical Team.
+- **Languages**: English and Malayalam (മലയാളം).
+- **Structure**: Lexile/Flesch-Kincaid grade-leveled narrative and informational passages embedded in the database schema ([`passage.model.ts`](file:///c:/Users/saroj/projects/ReadEase/server/src/models/passage.model.ts)).
+- **Annotations**: Accompanied by word-level phonemic boundary annotations, phonetic difficulty ratings, syllabification splits, and comprehension verification question banks.
+
+---
+
+## 🔗 Open-Source Repositories Used
+
+ReadEase integrates and builds upon foundational open-source research and engineering tools:
+
+| Repository / Project          | Upstream Source / Organization                                                                                      | License              | Integration & Purpose in ReadEase                                                                                                                                                                       |
+| :---------------------------- | :------------------------------------------------------------------------------------------------------------------ | :------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **DD-main / DD-V2**           | [srshalileh/DD](https://github.com/srshalileh/DD)                                                                   | Academic / HSE Univ  | Benchmark dataset, binary classification targets, and comparative ML validation \[[1](#-academic-references--citations)\].                                                                              |
+| **JEOresearch EyeTracker**    | [JEOresearch/EyeTracker](https://github.com/JEOresearch/EyeTracker)                                                 | MIT                  | 3D head pose and monitor gaze geometry port ([`JEOHeadTracker.ts`](file:///c:/Users/saroj/projects/ReadEase/client/src/eye-tracking/core/JEOHeadTracker.ts)) \[[3](#-academic-references--citations)\]. |
+| **MediaPipe Face Mesh**       | [google-ai-edge/mediapipe](https://github.com/google-ai-edge/mediapipe)                                             | Apache-2.0           | Real-time 468/478 monocular facial landmark and iris geometry pipeline \[[6](#-academic-references--citations)\].                                                                                       |
+| **1€ Filter (OneEuroFilter)** | [casiez/OneEuroFilter](https://github.com/casiez/OneEuroFilter)                                                     | BSD / MIT            | Dynamic speed-based low-pass jitter filter ([`OneEuroFilter.ts`](file:///c:/Users/saroj/projects/ReadEase/client/src/eye-tracking/filters/OneEuroFilter.ts)) \[[2](#-academic-references--citations)\]. |
+| **Tesseract OCR**             | [tesseract-ocr/tesseract](https://github.com/tesseract-ocr/tesseract)                                               | Apache-2.0           | Multi-language optical character recognition engine inside `ai-service` for document digitization.                                                                                                      |
+| **OpenDyslexic**              | [antijingoist/open-dyslexic](https://github.com/antijingoist/open-dyslexic)                                         | SIL OFL              | Dyslexia-specific typeface with weighted gravity bottoms to prevent letter inversions and flipping.                                                                                                     |
+| **Lexend**                    | [googlefonts/lexend](https://github.com/googlefonts/lexend)                                                         | SIL OFL              | Research-backed typeface family engineered to reduce visual crowding and increase reading speed \[[7](#-academic-references--citations)\].                                                              |
+| **Atkinson Hyperlegible**     | [brailleinstitute/atkinson-hyperlegible](https://github.com/brailleinstitute/atkinson-hyperlegible)                 | SIL OFL              | Typeface designed with the Braille Institute of America for high contrast and distinctive glyph legibility.                                                                                             |
+| **Bionic Reading**            | [ThomasJBrue/Bionic-Reading](https://github.com/ThomasJBrue/Bionic-Reading)                                         | Open Source / Casutt | Algorithmic fixation engine highlighting initial phonemes and syllables to stimulate visual saccades.                                                                                                   |
+| **pyttsx3 & eSpeak NG**       | [nateshmbhat/pyttsx3](https://github.com/nateshmbhat/pyttsx3) / [espeak-ng](https://github.com/espeak-ng/espeak-ng) | GPL / LGPL           | Offline multi-platform text-to-speech synthesis supporting Malayalam and English phonemes.                                                                                                              |
+
+---
+
+## 📚 Academic References & Citations
+
+If citing ReadEase or the foundational research integrated into this platform, please refer to the following citations:
+
+### Primary Publications
+
+1. **[1] Shalileh, S., Ignatov, D., Lopukhina, A., & Dragoy, O. (2023).**  
+   _Identifying dyslexia in school pupils from eye movement and demographic data using artificial intelligence._  
+   **PLOS ONE**, 18(11), e0292047. DOI: [10.1371/journal.pone.0292047](https://doi.org/10.1371/journal.pone.0292047)
+
+2. **[2] Casiez, G., Roussel, N., & Vogel, D. (2012).**  
+   _1 € filter: a simple speed-based low-pass filter for noisy input in human-computer interaction._  
+   In **Proceedings of the SIGCHI Conference on Human Factors in Computing Systems (CHI '12)**, Austin, TX, USA, pp. 2527–2530. DOI: [10.1145/2207676.2208639](https://doi.org/10.1145/2207676.2208639)
+
+3. **[3] Orlosky, J., Toyama, T., & Sonntag, D. (2017).**  
+   _Modularity and flexibility in eye tracking: The open-source EyeTracker platform._  
+   **Behavior Research Methods**, 49(5), 1801–1818. DOI: [10.3758/s13428-016-0824-3](https://doi.org/10.3758/s13428-016-0824-3)
+
+4. **[4] Rayner, K. (1998).**  
+   _Eye movements in reading and information processing: 20 years of research._  
+   **Psychological Bulletin**, 124(3), 372–422. DOI: [10.1037/0033-2909.124.3.372](https://doi.org/10.1037/0033-2909.124.3.372)
+
+5. **[5] Rello, L., & Baeza-Yates, R. (2013).**  
+   _Good background colors for readers with dyslexia._  
+   In **Proceedings of the 15th International ACM SIGACCESS Conference on Computers and Accessibility (ASSETS '13)**, Bellevue, WA, USA, Article 20, 1–8. DOI: [10.1145/2513383.2513446](https://doi.org/10.1145/2513383.2513446)
+
+6. **[6] Lugaresi, C., Tang, J., Nash, H., McClanahan, C., Uboweja, E., Hays, M., Zhang, F., Chang, C., Yong, M. G., Lee, J., Wan, W. T., Hua, W., Chang, C., & Grundmann, M. (2019).**  
+   _MediaPipe: A Framework for Building Perception Pipelines._  
+   **arXiv preprint arXiv:1906.08172**. [https://arxiv.org/abs/1906.08172](https://arxiv.org/abs/1906.08172)
+
+7. **[7] Shaver-Troup, B., Jockin, T., & Orozco, S. (2019).**  
+   _The Lexend Project: Eliminating visual crowding to accelerate reading comprehension._  
+   **Lexend Typography Research Initiative**. [https://www.lexend.com/](https://www.lexend.com/)
+
+---
+
+### BibTeX Citations
+
+```bibtex
+@article{shalileh2023identifying,
+  title={Identifying dyslexia in school pupils from eye movement and demographic data using artificial intelligence},
+  author={Shalileh, Soroosh and Ignatov, Dmitry and Lopukhina, Anastasiya and Dragoy, Olga},
+  journal={PLOS ONE},
+  volume={18},
+  number={11},
+  pages={e0292047},
+  year={2023},
+  publisher={Public Library of Science San Francisco, CA USA},
+  doi={10.1371/journal.pone.0292047}
+}
+
+@inproceedings{casiez20121,
+  title={1 {\texteuro} filter: a simple speed-based low-pass filter for noisy input in human-computer interaction},
+  author={Casiez, G{\'e}ry and Roussel, Nicolas and Vogel, Daniel},
+  booktitle={Proceedings of the SIGCHI Conference on Human Factors in Computing Systems},
+  pages={2527--2530},
+  year={2012},
+  doi={10.1145/2207676.2208639}
+}
+
+@article{orlosky2017modularity,
+  title={Modularity and flexibility in eye tracking: The open-source EyeTracker platform},
+  author={Orlosky, Jason and Toyama, Takumi and Sonntag, Daniel},
+  journal={Behavior Research Methods},
+  volume={49},
+  number={5},
+  pages={1801--1818},
+  year={2017},
+  doi={10.3758/s13428-016-0824-3}
+}
+
+@article{rayner1998eye,
+  title={Eye movements in reading and information processing: 20 years of research},
+  author={Rayner, Keith},
+  journal={Psychological Bulletin},
+  volume={124},
+  number={3},
+  pages={372--422},
+  year={1998},
+  doi={10.1037/0033-2909.124.3.372}
+}
+
+@inproceedings{rello2013good,
+  title={Good background colors for readers with dyslexia},
+  author={Rello, Luz and Baeza-Yates, Ricardo},
+  booktitle={Proceedings of the 15th International ACM SIGACCESS Conference on Computers and Accessibility},
+  pages={1--8},
+  year={2013},
+  doi={10.1145/2513383.2513446}
+}
+```
 
 ---
 
