@@ -17,7 +17,7 @@
   <a href="#-key-features">Key Features</a> •
   <a href="#-architecture">Architecture</a> •
   <a href="#-tech-stack">Tech Stack</a> •
-  <a href="#-getting-started">Getting Started</a> •
+  <a href="#-configuration-and-execution-guide">Configuration & Execution</a> •
   <a href="#-routing--pages">Routing & Pages</a> •
   <a href="#-accessibility--standards">Accessibility</a> •
   <a href="#-license">License</a>
@@ -144,81 +144,173 @@ ReadEase features synchronized URL routing powered by **React Router**:
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Configuration and Execution Guide
 
-### Prerequisites
-
-- **Node.js**: `v20.x` or higher
-- **npm**: `v10.x` or higher
-- **Python**: `v3.11+` or `v3.12+` (for `ai-service`)
-- **Docker & Docker Compose** (optional)
+Step-by-step instructions to configure, install dependencies, initialize data, and execute the ReadEase application.
 
 ---
 
-### 1. Clone & Install Dependencies
+### 📋 Prerequisites & System Requirements
+
+Before setting up ReadEase, ensure the following software is installed on your workstation:
+
+- **Node.js**: `v20.x` or higher (LTS recommended)
+- **npm**: `v10.x` or higher
+- **Python**: `v3.11` or `v3.12` (for the AI microservice)
+- **MongoDB**: Local MongoDB instance (`mongodb://localhost:27017`) or a free [MongoDB Atlas Cluster](https://www.mongodb.com/cloud/atlas)
+- **Git**: `v2.x`+
+- _(Optional)_ **Docker & Docker Compose**: For containerized deployment
+- _(Optional)_ **Groq API Key**: Free LLM key from [Groq Console](https://console.groq.com/keys) for real-time text simplification
+
+---
+
+### Step 1: Clone the Repository
 
 ```bash
 git clone https://github.com/srjofficial/ReadEase.git
 cd ReadEase
+```
 
-# Install all JavaScript/TypeScript dependencies across workspaces
+---
+
+### Step 2: Install Node.js Dependencies & Build Shared Packages
+
+ReadEase uses npm workspaces. Installing from the root installs dependencies across the monorepo, client, and server simultaneously.
+
+```bash
+# 1. Install root, client, and server dependencies
 npm install
 
-# Build shared types package
+# 2. Build the shared TypeScript contract library (@readease/shared)
 npm run build:shared
 ```
 
 ---
 
-### 2. Set Up AI Microservice (Python)
+### Step 3: Configure Python AI Microservice (`ai-service`)
+
+The AI service handles OCR parsing, syllabification, and phonemic assistance via FastAPI.
 
 ```bash
+# 1. Navigate to the AI service directory
 cd ai-service
+
+# 2. Create a virtual environment
 python -m venv .venv
 
-# Windows (PowerShell):
+# 3. Activate the virtual environment
+# On Windows (PowerShell):
 .venv\Scripts\Activate.ps1
-# macOS/Linux:
+# On macOS / Linux:
 source .venv/bin/activate
 
+# 4. Install required Python packages
 pip install -r requirements.txt
+
+# 5. Return to root
 cd ..
 ```
 
 ---
 
-### 3. Environment Configuration
+### Step 4: Configure Environment Variables
 
-Copy `.env.example` to `.env`:
+ReadEase provides templates for root, backend, frontend, and AI microservices.
 
 ```bash
+# Copy root orchestration configuration
 cp .env.example .env
+
+# Copy individual service environment files if not already present
+cp server/.env.example server/.env
+cp client/.env.example client/.env
+cp ai-service/.env.example ai-service/.env
+```
+
+#### Key Variables to Review:
+
+- **`server/.env`**:
+  - `MONGODB_URI`: Set to your local MongoDB (`mongodb://localhost:27017/readease`) or your Atlas URI.
+  - `JWT_SECRET` / `JWT_REFRESH_SECRET`: Secure secret strings (default provided for development).
+  - `LLM_API_KEY`: Groq API key (`gsk_...`) for cognitive text processing.
+  - `SMTP_*`: _(Optional)_ Email credentials for OTP delivery. If omitted in development, OTPs are logged directly to the server terminal.
+- **`client/.env`**:
+  - `VITE_API_URL`: Points to backend (`http://localhost:5000/api/v1`).
+  - `VITE_AI_SERVICE_URL`: Points to Python microservice (`http://localhost:8000`).
+- **`ai-service/.env`**:
+  - `AI_PORT`: `8000`
+  - `ALLOWED_ORIGINS`: `http://localhost:5173,http://localhost:5000`
+
+---
+
+### Step 5: Verify Database Connection & Seed Test Accounts
+
+Ensure your MongoDB instance is running, verify the connection, and pre-populate demo accounts for all 5 roles:
+
+```bash
+# Verify MongoDB connection
+npm run db:test --workspace=server
+
+# Seed pre-configured demo accounts (Student, Teacher, Special Educator, Parent, Admin)
+npm run seed:accounts --workspace=server
 ```
 
 ---
 
-### 4. Run the Development Environment
+### Step 6: Execute the Application
 
-#### Option A: Running Services Locally
+#### Option A: Local Development (Recommended)
+
+Run the full stack across two terminal windows:
+
+**Terminal 1 (Root): Start Frontend & Backend Concurrently**
 
 ```bash
-# Terminal 1: Start Client (Vite) and Server (Express) concurrently
 npm run dev
+```
 
-# Terminal 2: Start Python FastAPI AI Service
+> Starts Vite Client on `http://localhost:5173` and Express API on `http://localhost:5000`.
+
+**Terminal 2: Start Python AI Microservice**
+
+```bash
 cd ai-service
+# Windows:
+.venv\Scripts\Activate.ps1
+# macOS/Linux:
+source .venv/bin/activate
+
 uvicorn app.main:app --reload --port 8000
 ```
 
-- **Frontend Client**: `http://localhost:5173`
-- **Backend API**: `http://localhost:5000`
-- **AI Microservice & Docs**: `http://localhost:8000/docs`
+> Starts FastAPI service on `http://localhost:8000` with Swagger UI at `http://localhost:8000/docs`.
 
-#### Option B: Docker Compose
+#### Option B: Full Containerized Execution via Docker Compose
 
 ```bash
 docker-compose up --build
 ```
+
+---
+
+### Step 7: Application URLs & Test Credentials
+
+Once running, access the services:
+
+- **Frontend Application**: [http://localhost:5173](http://localhost:5173)
+- **Backend API Health Check**: [http://localhost:5000/api/health](http://localhost:5000/api/health)
+- **AI Service Interactive Swagger API**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **UI Design System Catalog**: [http://localhost:5173/catalog](http://localhost:5173/catalog)
+
+#### Pre-Configured Test Accounts (Default Password: `Password123!`):
+
+| Role                 | Email                   | Password       | Landing Portal        | Key Capabilities                                         |
+| :------------------- | :---------------------- | :------------- | :-------------------- | :------------------------------------------------------- |
+| **Student**          | `student@readease.com`  | `Password123!` | `/student/dashboard`  | Bionic reading, TTS, ruler, gaze tracking, streak badges |
+| **Teacher**          | `teacher@readease.com`  | `Password123!` | `/teacher/dashboard`  | Cohort rosters, assignment manager, WPM fluency logs     |
+| **Special Educator** | `educator@readease.com` | `Password123!` | `/educator/dashboard` | IEP accommodation profiles, phonological screening       |
+| **Parent**           | `parent@readease.com`   | `Password123!` | `/parent/dashboard`   | Home reading logs, stamina metrics, progress reports     |
+| **Admin**            | `admin@readease.com`    | `Password123!` | `/admin/dashboard`    | System diagnostics, OCR pipeline logs, user audits       |
 
 ---
 
